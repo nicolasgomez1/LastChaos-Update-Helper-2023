@@ -1,0 +1,2808 @@
+<?xml version="1.0" encoding="iso-8859-1"?><DocumentData>
+<ProductVersion>8.5.3.0</ProductVersion>
+<ProductID>{ABF9EF9E-ECF6-4019-8A3E-908A6CFF4D1A}</ProductID>
+<IRProductName>AutoPlay Media Studio 8</IRProductName>
+<ProductType>Commercial</ProductType>
+<DocInfo>
+<Title/>
+<Author/>
+<Company/>
+<Copyright>Copyright © 2022</Copyright>
+<URL/>
+<Email/>
+<Comments/>
+<CreatedVersion>8.5.3.0 (Professional Edition Commercial)</CreatedVersion>
+<LastSavedVersion>8.5.3.0 (Professional Edition Commercial)</LastSavedVersion>
+</DocInfo>
+<ProjectInfo ToolTipStyle="0">
+<Office2007Theme Theme="5"/>
+<WindowStyles>
+<Width>500</Width>
+<Height>440</Height>
+<WindowTitle>LastChaos Update Helper 2022/3 [BETA]</WindowTitle>
+<WindowStyle>0</WindowStyle>
+<FillColor>0</FillColor>
+</WindowStyles>
+<WindowOptions>
+<Movable>1</Movable>
+<AlwaysOnTop>1</AlwaysOnTop>
+<Resizable>1</Resizable>
+<MinWidth>500</MinWidth>
+<MinHeight>440</MinHeight>
+</WindowOptions>
+<TransparentWindow>
+<TransparentImage/>
+<FitTrans>1</FitTrans>
+</TransparentWindow>
+<Icon>
+<UseCustomIcon>1</UseCustomIcon>
+<TaskbarVisibility>0</TaskbarVisibility>
+<IconFile>AutoPlay\Icons\NG.ico</IconFile>
+</Icon>
+<IntroVideo>
+<AllowClickToSkip>1</AllowClickToSkip>
+<MediaWidth>630</MediaWidth>
+<MediaHeight>425</MediaHeight>
+<WindowWidth>630</WindowWidth>
+<WindowHeight>425</WindowHeight>
+<BackgroundColor>16777215</BackgroundColor>
+<MediaMode>1</MediaMode>
+<WindowMode>0</WindowMode>
+<VideoFileName/>
+<UseIntroVideo>0</UseIntroVideo>
+<VideoType>0</VideoType>
+<UseBorder>0</UseBorder>
+<TitleBar>0</TitleBar>
+<TitleBarText/>
+</IntroVideo>
+<AudioBGMusic>
+<ShuffleMode>0</ShuffleMode>
+<Repeat>1</Repeat>
+<BackVolume>255</BackVolume>
+<EffectsVolume>255</EffectsVolume>
+<Tracks/>
+</AudioBGMusic>
+<Globals>
+<Script>Watcher					= ({});
+WorkingDirectory		= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "WorkingDirectory");
+TempFolder				= (_SourceFolder.."\\Temp");
+TempVersionFile			= (_SourceFolder.."\\Version.tmp");
+Version					= (nil);
+SettingsFile			= (_SourceFolder.."\\Settings.ini");
+ZipPath					= ("");
+TotalStages				= (5);
+FTPDownloadStatusText	= ("");
+FTPUploadStatusText 	= ("");
+FTPHost					= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPHost");
+FTPUsername				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPUsername");
+FTPPassword				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPPassword");
+FTPPath					= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPPath");
+MySQLHost				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLHost");
+MySQLUsername			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLUsername");
+MySQLPassword			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLPassword");
+MySQLDatabase			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLDBName");
+----------------------------------------------------------------
+Theme				= ({BGColor = "0xCDCFD4", RedColor = "0xFF6962", GreenColor = "0x2ABF89", BlueColor = "0x61A9FE", YellowColor = "0xFEDF61"});
+Theme.LogTextColor	= ("0xC7CACF"); --Messages / Tooltips / Menu Bar
+Theme.LogBGColor0	= ("0x3B4047"); --Default
+Theme.LogBGColor1	= ("0x44494F");	--Alternated
+Theme.LogBGColor2	= ("0x4E575B");	--Highlight
+Theme.LogBGColor3	= ("0x4E4F54");	--Selected
+
+--[[
+Input.SetText("1", String.AbbreviateFilePath(INIFile.GetValue(SettingsFile, "General", "ClientFolderPath"), 24));
+
+if(GetConfig("General", "CleanAfterUpload") == "true")then
+	CheckBox.SetChecked("2", true);
+else
+	CheckBox.SetChecked("CONFIG_CLEANAFTERUPLOAD", false);
+end
+]]
+
+function LoadProfiles(Obj)
+	ComboBox.ResetContent(Obj);
+	
+	for _, Profile in pairs(INIFile.GetValueNames(SettingsFile, "Profiles")) do
+		local Value = DelimitedToTable(INIFile.GetValue(SettingsFile, "Profiles", Profile), ",");
+		local Data;
+		
+		for N = 1, #Value do
+			if(N == 1)then
+				Data = (Value[N]);
+			else
+				Data = (Data..","..Value[N]);
+			end
+		end
+		
+		ComboBox.AddItem(Obj, Profile, Data);
+		
+		local Selected = INIFile.GetValue(SettingsFile, "General", "SelectedProfile");
+		if(Selected ~= "")then
+			if(Profile == Selected)then
+				ComboBox.SetSelected(Obj, _);
+			end
+		end
+	end
+end
+
+function PrintLog(Text, Tooltip, Type)
+	--[[
+		Desc	:	Print Logs in Console.
+		Arg 1	:	Message(string)
+		Arg 2	:	Tooltip text(string) / nil
+		Arg 3	:	Log type(string) (INFO / ERROR / SUCCESS / WARNING / NONE)
+	]]
+	local ITEMCOLOR;
+	
+	local ItemColor = ListBoxEx.GetItemColor("Logs", ListBoxEx.GetTotalItems("Logs"), LBXISTATE_NORMAL);
+	if(ItemColor == nil)then
+		ITEMCOLOR = Math.HexColorToNumber(Theme.LogBGColor0);
+	elseif(ItemColor[1] == -1 or ItemColor[1] == Math.HexColorToNumber(Theme.LogBGColor0))then
+		ITEMCOLOR = Math.HexColorToNumber(Theme.LogBGColor1);
+	elseif(ItemColor[1] == Math.HexColorToNumber(Theme.LogBGColor1))then
+		ITEMCOLOR = Math.HexColorToNumber(Theme.LogBGColor0);
+	end
+	
+	if(Type == "NONE")then
+		ListBoxEx.AddItem("Logs", "&lt;p&gt;&lt;b&gt;&lt;font color='0x9B9A97' face='Segoe UI'&gt;"..Text.."&lt;/font&gt;&lt;/b&gt;&lt;/p&gt;", "", "", "", 0, LBXITEM_HTML, 0, {ITEMCOLOR}, nil, nil);
+	else	
+		local FormatText, FormatTooltip;
+		
+		if(Type == "INFO")then			Type = ("&lt;font color='"..String.Replace(Theme.BlueColor, "0x", "#", false).."'&gt;INFO&lt;/font&gt;");
+		elseif(Type == "ERROR")then		Type = ("&lt;font color='"..String.Replace(Theme.RedColor, "0x", "#", false).."'&gt;ERROR&lt;/font&gt;");
+		elseif(Type == "SUCCESS")then	Type = ("&lt;font color='"..String.Replace(Theme.GreenColor, "0x", "#", false).."'&gt;SUCCESS&lt;/font&gt;");
+		elseif(Type == "WARNING")then	Type = ("&lt;font color='"..String.Replace(Theme.YellowColor, "0x", "#", false).."'&gt;WARNING&lt;/font&gt;");	end
+		
+		if(Tooltip ~= nil)then
+			FormatText		= ("&lt;p&gt;&lt;b&gt;&lt;font color='"..String.Replace(Theme.LogTextColor, "0x", "#", true).."' face='Segoe UI'&gt;"..System.GetTime(TIME_FMT_MIL).."&lt;/font&gt; "..Type.." &lt;font color='"..String.Replace(Theme.LogTextColor, "0x", "#", true).."' face='Segoe UI'&gt;- "..Text.." (*)&lt;/font&gt;&lt;/b&gt;&lt;/p&gt;");
+			FormatTooltip	= ("&lt;p&gt;&lt;b&gt;&lt;font color='"..String.Replace(Theme.LogTextColor, "0x", "#", true).."' face='Segoe UI'&gt;"..Tooltip.."&lt;/font&gt;&lt;/b&gt;&lt;/p&gt;");
+		else
+			FormatText		= ("&lt;p&gt;&lt;b&gt;&lt;font color='"..String.Replace(Theme.LogTextColor, "0x", "#", true).."' face='Segoe UI'&gt;"..System.GetTime(TIME_FMT_MIL).."&lt;/font&gt; "..Type.." &lt;font color='"..String.Replace(Theme.LogTextColor, "0x", "#", true).."' face='Segoe UI'&gt;- "..Text.."&lt;/font&gt;&lt;/b&gt;&lt;/p&gt;");
+			FormatTooltip	= ("");
+		end
+		
+		ListBoxEx.AddItem("Logs", FormatText, FormatTooltip, "", "", 0, LBXITEM_HTML, 0, {ITEMCOLOR}, nil, nil);
+	end
+	
+	ListBoxEx.EnsureVisible("Logs", ListBoxEx.GetTotalItems("Logs"));
+end
+
+function ZipCallback(String, Percent, Status)
+	if(Status == ZIP_STATUS_MAJOR)then
+		StatusDlg.SetStatusText("Compressing: "..ZipPath.." ("..Percent.."%)");
+		StatusDlg.SetMeterPos(Percent);
+	end
+	
+	--[[if(Status == ZIP_STATUS_MINOR)then
+		StatusDlg.SetStatusText("Compressing file: "..String.." "..Percent.."%");
+		StatusDlg.SetMeterPos(Percent);
+	end]]
+
+	return true;
+end
+
+function FileFindCallback(FoundPath)
+	StatusDlg.SetStatusText("Found: "..FoundPath);
+	
+	if(StatusDlg.IsCancelled() == true)then
+		StatusDlg.Hide();
+		return false;
+	else
+		return true;
+	end
+end
+
+function FileCopyCallback(Source, Destination, Copied, Total, FileCopied, FileTotal)
+	StatusDlg.SetStatusText("Copying: "..String.AbbreviateFilePath(Source, 25).." ("..Math.Floor(FileCopied/FileTotal*100).."%)");
+	StatusDlg.SetMeterPos(Math.Floor(Copied/Total*100));
+	
+	if(StatusDlg.IsCancelled() == true)then
+		StatusDlg.Hide();
+		return false;
+	else
+		return true;
+	end
+end
+
+function FTPDownloadCallback(Bytes, Total)
+    if(Total ~= 0)then
+    	local Percent = Math.Floor(Bytes/Total*100);
+    	
+    	StatusDlg.SetMeterPos(Percent);
+    	StatusDlg.SetStatusText(FTPDownloadStatusText.."\t("..Percent.."%)");
+    end
+end
+
+function FTPUploadCallback(Bytes, Total)
+    if(Total ~= 0)then
+    	local Percent = Math.Floor(Bytes/Total*100);
+    	
+    	StatusDlg.SetMeterPos(Percent);
+    	StatusDlg.SetStatusText(FTPUploadStatusText.."\t("..Percent.."%)");
+    end
+end
+
+function ExplodeString(str, div)
+    if(div == "")then return false end
+    
+    local pos, arr = 0, {};
+    
+    for st, sp in function() return string.find(str, div, pos, true) end do
+        table.insert(arr, string.sub(str, pos, st-1));
+        
+        pos = (sp+1);
+    end
+    
+    table.insert(arr, string.sub(str, pos));
+    
+    return arr;
+end
+
+function DelimitedToTable(String, Delimiter)
+	if not(Delimiter or #Delimiter &lt; 1)then return nil end
+
+	local tbl = ({});
+	local sa = (String);
+	local sD = ("");
+	local nP = string.find(sa, Delimiter, 1, true);
+
+	while(nP)do
+		sD = string.sub(sa, 1, nP-1);
+		table.insert(tbl, #tbl+1, sD);
+		sa = string.sub(sa, nP+1, -1);
+		nP = string.find(sa, Delimiter, 1, true);
+	end
+
+	if(sa ~= "")then
+		table.insert(tbl, #tbl+1, sa);
+	end
+
+	return tbl;
+end
+
+function CheckList()
+	local TotalItems = ListBox.GetCount("FileList");
+	
+	if(TotalItems ~= -1 and TotalItems &gt; 0 and xButton.IsEnabled("Push") == false)then
+		xButton.SetEnabled("clean", true);
+		xButton.SetEnabled("remove", true);
+		xButton.SetEnabled("createzip", true);
+		xButton.SetEnabled("Push", true);
+	elseif(TotalItems ~= -1 and TotalItems == 0 and xButton.IsEnabled("Push"))then
+		xButton.SetEnabled("clean", false);
+		xButton.SetEnabled("remove", false);
+		xButton.SetEnabled("createzip", false);
+		xButton.SetEnabled("Push", false);
+	end
+end
+
+function CreateCRC32List(DescName, Path)
+	if(CheckBox.GetChecked("genCRC"))then
+		TextFile.WriteFromString(_SourceFolder.."\\"..DescName..".txt", File.GetCRC(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true))..","..String.Replace(Path, WorkingDirectory, "", true).."\r\n", true);
+	end
+end
+
+function Watcher.GetEventDataTable(eventDataString)
+	local tbReturn = DelimitedToTable(eventDataString, "|");
+	
+	local event = ({});
+	
+	if(Table.Count(tbReturn) == 2)then
+		event.Type = tbReturn[1];
+		event.Path = tbReturn[2];
+	elseif(Table.Count(tbReturn) == 3)then
+		event.Type = tbReturn[1];
+		event.Path = tbReturn[2];
+		event.OldPath = tbReturn[3];
+	end
+
+	return event;
+end
+
+function Watcher.Initialize(objRef)
+	DLL.CallFunction("FileSystemWatcher.dll", "Initialize", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.UnInitialize(objRef)
+	DLL.CallFunction("FileSystemWatcher.dll", "UnInitialize", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetPath(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetPath", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetFilter(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetFilter", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetBufferSize(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetBufferSize", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetNotifyFilter(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetNotifyFilter", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetEventType(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetEventType", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetLogErrors(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetLogErrors", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetIncludeSubdirectories(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetIncludeSubdirectories", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetEnableRaisingEvents(objRef)
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetEnableRaisingEvents", "\""..objRef.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetLoggedEvent(objRef)
+	local eventDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedEvent", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+	return Watcher.GetEventDataTable(eventDataString);
+end
+
+function Watcher.GetLoggedError(objRef)
+	local errorDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedError", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+	return GetErrorDataTable(errorDataString);
+end
+
+function Watcher.SetPath(objRef, path)
+	DLL.CallFunction("FileSystemWatcher.dll", "SetPath", "\""..objRef.."\""..",".."\""..path.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetFilter(objRef, filter)
+	DLL.CallFunction("FileSystemWatcher.dll", "SetFilter", "\""..objRef.."\""..",".."\""..filter.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetBufferSize(objRef, bufferSize)
+	DLL.CallFunction("FileSystemWatcher.dll", "SetBufferSize", "\""..objRef.."\""..","..bufferSize, DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetNotifyFilter(objRef, notifyFilter)
+	DLL.CallFunction("FileSystemWatcher.dll", "SetNotifyFilter", "\""..objRef.."\""..",".."\""..notifyFilter.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetEventType(objRef, eventType)
+	DLL.CallFunction("FileSystemWatcher.dll", "SetEventType", "\""..objRef.."\""..",".."\""..eventType.."\"", DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetLogErrors(objRef, logErrors)
+	if(logErrors == true)then
+		logErrors = (1);
+	else
+		logErrors = (0);
+	end
+
+	DLL.CallFunction("FileSystemWatcher.dll", "SetLogErrors", "\""..objRef.."\""..","..logErrors, DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetIncludeSubdirectories(objRef, includeSubdirectories)
+	if(includeSubdirectories == true)then
+		includeSubdirectories = (1);
+	else
+		includeSubdirectories = (0);
+	end
+
+	DLL.CallFunction("FileSystemWatcher.dll", "SetIncludeSubdirectories", "\""..objRef.."\""..","..includeSubdirectories, DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.SetEnableRaisingEvents(objRef, enableRaisingEvents)
+	if(enableRaisingEvents == true)then
+		enableRaisingEvents = (1);
+	else
+		enableRaisingEvents = (0);
+	end
+
+	DLL.CallFunction("FileSystemWatcher.dll", "SetEnableRaisingEvents", "\""..objRef.."\""..","..enableRaisingEvents, DLL_RETURN_TYPE_LONG, DLL_CALL_STDCALL);
+end
+
+function Watcher.GetError()
+	return DLL.CallFunction("FileSystemWatcher.dll", "GetError", "", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+end
+
+function Watch(Status)
+	if(Status)then
+		Watcher.Initialize("watcher1");
+		Watcher.SetPath("watcher1", WorkingDirectory);
+		Watcher.SetFilter("watcher1", "*");
+		Watcher.SetNotifyFilter("watcher1", "FileName, DirectoryName, Size, LastWrite");      
+		Watcher.SetEventType("watcher1", "Changed");
+		Watcher.SetLogErrors("watcher1");
+		Watcher.SetIncludeSubdirectories("watcher1", true);
+		Watcher.SetEnableRaisingEvents("watcher1", true);
+					
+		Watcher.Initialize("watcher2");
+		Watcher.SetPath("watcher2", WorkingDirectory);
+		Watcher.SetFilter("watcher2", "*");
+		Watcher.SetNotifyFilter("watcher2", "FileName, DirectoryName");      
+		Watcher.SetEventType("watcher2", "Created, Deleted, Renamed");
+		Watcher.SetLogErrors("watcher2");
+		Watcher.SetIncludeSubdirectories("watcher2", true);
+		Watcher.SetEnableRaisingEvents("watcher2", true);
+					
+		Page.StartTimer(INIFile.GetValue(SettingsFile, "General", "WatcherInterval"), 1);
+		PrintLog("Watcher Started", "Checks: Create, Delete, Renamed, Changed&lt;br&gt;Directory Name&lt;br&gt;File Name/Size/Last Write", "INFO");
+	else
+		Page.StopTimer(1);
+		
+		Watcher.UnInitialize("watcher1");
+		Watcher.UnInitialize("watcher2");
+		
+		PrintLog("Watcher Stopped", nil, "INFO");
+	end
+end</Script>
+<BookMarks count="0">
+</BookMarks>
+<DesignCodeLine>206</DesignCodeLine>
+<DesignCodeCol>35</DesignCodeCol>
+</Globals>
+<Defaults>
+<StartupPage>_PageFirst</StartupPage>
+<MouseOverSoundDefault>AutoPlay\Audio\High1.ogg</MouseOverSoundDefault>
+<MouseClickSoundDefault>AutoPlay\Audio\Click1.ogg</MouseClickSoundDefault>
+<MemMngMethod>0</MemMngMethod>
+<UserPrivilegeLevel>0</UserPrivilegeLevel>
+</Defaults>
+<TargetMedia>
+<TargetMediaSize>4</TargetMediaSize>
+<CustomSize>0</CustomSize>
+</TargetMedia>
+<Group>
+<CurrentGrounp>3</CurrentGrounp>
+</Group>
+<ActionPlugins>
+<Plugin>FTP\FTP.lmd</Plugin>
+</ActionPlugins>
+<TemplateInfo>
+<Name/>
+<Author/>
+<Contact/>
+<Web/>
+<Copyright>Copyright © 2022</Copyright>
+<Desc/>
+<Categories>General</Categories>
+<Picture/>
+</TemplateInfo>
+<ReadOrder>
+<RTLReadOrder>0</RTLReadOrder>
+</ReadOrder>
+<CodeSigning>
+<CodeSignLocation/>
+<CodeSignCertificateFile/>
+<CodeSignPVKFile/>
+<CodeSignTimeStampURL/>
+<CodeSignDescription/>
+<CodeSignDescriptionURL/>
+<CodeSignApps>0</CodeSignApps>
+<CodeSigningTool>0</CodeSigningTool>
+<Arguments/>
+</CodeSigning>
+<RuntimeSkin>
+<UseSkinFile>0</UseSkinFile>
+<SkinFilename/>
+<SkinSubStyle/>
+</RuntimeSkin>
+<Databases>
+<MySQL>1</MySQL>
+<SQLite3>0</SQLite3>
+<Oracle>0</Oracle>
+<ODBC>0</ODBC>
+<PostgreSQL>0</PostgreSQL>
+</Databases>
+<Event>
+<Name>On Startup</Name>
+<Args/>
+<Script>if(File.DoesExist(_SourceFolder.."\\build.version"))then
+	TextFile.WriteFromString(_SourceFolder.."\\build.version", tonumber(TextFile.ReadToString(_SourceFolder.."\\build.version")) + 1, false);
+end</Script>
+<TreeStates>
+<TreeState>2</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1</DesignCodeLine>
+<DesignCodeCol>126</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Shutdown</Name>
+<Args/>
+<Script>if(FTP.IsConnected())then
+	FTP.Disconnect();
+end
+
+MySQL:close();</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>4</DesignCodeLine>
+<DesignCodeCol>14</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Size</Name>
+<Args>number e_WindowWidth, number e_WindowHeight, number e_PageWidth, number e_PageHeight, number e_Type</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>-14477547</DesignCodeLine>
+<DesignCodeCol>-14871017</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Menu</Name>
+<Args>number e_ID, table e_ItemInfo</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1512</DesignCodeLine>
+<DesignCodeCol>378</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<EXEResourceInfo>
+<ReplaceIcon>1</ReplaceIcon>
+<IconFilename>AutoPlay\Icons\NG.ico</IconFilename>
+<ReplaceVersionInfo>1</ReplaceVersionInfo>
+<FileVer1>0</FileVer1>
+<FileVer2>4</FileVer2>
+<FileVer3>4</FileVer3>
+<FileVer4>7</FileVer4>
+<ProductVer1>2</ProductVer1>
+<ProductVer2>0</ProductVer2>
+<ProductVer3>2</ProductVer3>
+<ProductVer4>3</ProductVer4>
+<Comments>Created with AutoPlay Media Studio</Comments>
+<Company>NicolasG</Company>
+<FileDescription>LastChaos Update Helper 2022/3</FileDescription>
+<LegalCopyright/>
+<LegalTrademarks/>
+<PrivateBuild/>
+<ProductName>LastChaos Update Helper 2022/3</ProductName>
+<SpecialBuild/>
+</EXEResourceInfo>
+<HGuidelines/>
+<VGuidelines/>
+<MenuBar>
+<Enabled>0</Enabled>
+<UseIcons>0</UseIcons>
+<BitmapIconFile/>
+<TransColor format="hex">ffffff</TransColor>
+<MenuItem>
+<Text>Main Menu &amp;1</Text>
+<ID>100</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu>
+<MenuItem>
+<Text>Sub Menu &amp;1</Text>
+<ID>101</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu/>
+<IconID>-1</IconID>
+</MenuItem>
+<MenuItem>
+<Text>Sub Menu &amp;2</Text>
+<ID>102</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu/>
+<IconID>-1</IconID>
+</MenuItem>
+</SubMenu>
+<IconID>-1</IconID>
+</MenuItem>
+<MenuItem>
+<Text>Main Menu &amp;2</Text>
+<ID>200</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu>
+<MenuItem>
+<Text>Sub Menu &amp;1</Text>
+<ID>201</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu/>
+<IconID>-1</IconID>
+</MenuItem>
+<MenuItem>
+<Text>Sub Menu &amp;2</Text>
+<ID>202</ID>
+<Enabled>1</Enabled>
+<Checked>0</Checked>
+<SubMenu/>
+<IconID>-1</IconID>
+</MenuItem>
+</SubMenu>
+<IconID>-1</IconID>
+</MenuItem>
+</MenuBar>
+</ProjectInfo>
+<Page>
+<Name>Page1</Name>
+<InheritObs/>
+<InheritBG/>
+<Description/>
+<Keywords/>
+<Background>
+<Type>0</Type>
+<ImageStyle>0</ImageStyle>
+<TopColor>16711680</TopColor>
+<BottomColor>13946829</BottomColor>
+<UseCustomBackgroundSettings>1</UseCustomBackgroundSettings>
+<TransitionEffect/>
+<TransProps/>
+<NormalImage>
+<Filename/>
+</NormalImage>
+</Background>
+<Event>
+<Name>On Preload</Name>
+<Args/>
+<Script>WidthPost = (System.GetDisplayInfo().Width / 2 - Window.GetSize(Application.GetWndHandle()).Width / 2);
+AppHeight = (Window.GetSize(Application.GetWndHandle()).Height);
+AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
+
+--Window.SetPos(Application.GetWndHandle(), WidthPost, 1 - AppHeight);</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>4</DesignCodeLine>
+<DesignCodeCol>2</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Show</Name>
+<Args/>
+<Script>--Page.StartTimer(100, 999);</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>28</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Close</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Timer</Name>
+<Args>number e_ID</Args>
+<Script>if(e_ID == 1)then
+	local loggedEvent1	= Watcher.GetLoggedEvent("watcher1");
+	local loggedEvent2	= Watcher.GetLoggedEvent("watcher2");
+	local Status		= ({});
+	
+	if(loggedEvent1.Type ~= nil)then
+		table.insert(Status, 1, {Event = loggedEvent1.Type, Path = loggedEvent1.Path});
+	end
+	
+	if(loggedEvent2.Type ~= nil)then
+		if(loggedEvent2.Type == "Renamed")then
+			table.insert(Status, 1, {Event = loggedEvent2.Type, OldPath = loggedEvent2.OldPath, Path = loggedEvent2.Path});
+		else
+			table.insert(Status, 1, {Event = loggedEvent2.Type, Path = loggedEvent2.Path});
+		end
+	end
+	
+	if(#Status &gt; 0)then
+		if(Status[1].Event == "Deleted")then
+			local NEWID = (0);
+			local Found = (false);
+			
+			for ID = 1, ListBox.GetCount("FileList") do
+				if(String.SplitPath(Status[1].Path).Extension == "")then -- Its a Folder
+					local Data = ExplodeString(ListBox.GetItemData("FileList", ID-NEWID), "|"); -- [1]Name [2]Directory Path
+					
+					if(Data[2] == Status[1].Path or String.Find(Data[2], Status[1].Path, 1, true))then
+						ListBox.DeleteItem("FileList", ID-NEWID);
+						
+						NEWID = (NEWID+1);
+						
+						Found = (true);
+					end
+				else -- Its a File
+					if(ExplodeString(ListBox.GetItemData("FileList", ID), "|")[2] == Status[1].Path)then
+						ListBox.DeleteItem("FileList", ID);
+						
+						Found = (true);
+						
+						break;
+					end
+				end
+			end
+			
+			if not(Found)then
+				PrintLog("["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), nil, "INFO");
+			end
+		end
+		
+		if(Status[1].Event == "Renamed")then
+			local Found = (false);
+			
+			for ID = 1, ListBox.GetCount("FileList") do
+				local Data		= ExplodeString(ListBox.GetItemData("FileList", ID), "|"); -- [1]Name [2]Directory Path
+				local SplitPath = String.SplitPath(Data[2]);
+				
+				if not(SplitPath.Drive..SplitPath.Folder == WorkingDirectory)then
+					if(String.Left(Data[2], String.Length(Status[1].OldPath)) == Status[1].OldPath)then
+						local NewPath = String.Replace(Data[2], Status[1].OldPath, Status[1].Path, true);
+						
+						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(NewPath, WorkingDirectory, "", true));
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath);
+						
+						Found = (true);
+						
+						break;
+					end
+				else
+					if(String.Left(Data[2], String.Length(Status[1].OldPath)) == Status[1].OldPath)then
+						local NewPath = String.Replace(Data[2], Status[1].OldPath, Status[1].Path, true);
+						
+						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(NewPath, WorkingDirectory, "", true));
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath);
+						
+						Found = (true);
+					end
+				end
+			end
+			
+			if(Found == false)then
+				local Path = (Status[1].Path);
+				local Name = ExplodeString(Path, "\\");
+			
+				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path);
+			end
+		end
+		
+		if(Status[1].Event == "Changed")then
+			local Path	= (Status[1].Path);
+			local Name	= ExplodeString(Path, "\\");
+			local Found = (false);
+			
+			for ID = 1, ListBox.GetCount("FileList") do
+				local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|"); -- [1]Name [2]Directory Path
+				
+				if(String.SplitPath(Status[1].Path).Extension == "")then
+					if(String.Find(Data[2], Status[1].Path, 1, true))then
+						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true));
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path);
+						
+						Found = (true);
+					end
+				else -- File
+					if(Data[2] == Status[1].Path)then
+						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true));
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path);
+						
+						Found = (true);
+						
+						break;
+					end
+				end
+			end
+			
+			if(Found == false)then
+				local Path = (Status[1].Path);
+				local Name = ExplodeString(Path, "\\");
+			
+				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path);
+			end
+		end
+		
+		if(Status[1].Event == "Created")then
+			local Path = (Status[1].Path);
+			local Name = ExplodeString(Path, "\\");
+			
+			ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path);
+		end
+	end
+	
+	CheckList();
+end
+
+if(e_ID == 999)then -- For Hide Window
+	if(System.GetMousePosition(false).X &lt;= System.GetDisplayInfo().Width / 2 - Window.GetSize(Application.GetWndHandle()).Width / 2 - 2 or System.GetMousePosition(true).X &gt;= AppWidth or System.GetMousePosition(true).Y &gt;= AppHeight)then
+		Page.StopTimer(999);
+		
+		while(Window.GetPos(Application.GetWndHandle()).Y ~= 1 - AppHeight)do
+			Window.SetPos(Application.GetWndHandle(), WidthPost, Window.GetPos(Application.GetWndHandle()).Y - 1);
+		end
+		
+		Page.StartTimer(100, 999);
+	end
+end</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>143</DesignCodeLine>
+<DesignCodeCol>3</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Audio</Name>
+<Args>number e_Channel, string e_State</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Size</Name>
+<Args>number e_WindowWidth, number e_WindowHeight, number e_PageWidth, number e_PageHeight, number e_Type</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Menu</Name>
+<Args>number e_ID, table e_ItemInfo</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Key</Name>
+<Args>number e_Key, table e_Modifiers</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Mouse Button</Name>
+<Args>number e_Type, number e_X, number e_Y</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Mouse Move</Name>
+<Args>number e_X, number e_Y</Args>
+<Script>--[[if(e_Y &lt;= AppHeight)then -- For Show Window
+	while(Window.GetPos(Application.GetWndHandle()).Y ~= 0)do
+		Window.SetPos(Application.GetWndHandle(), WidthPost, Window.GetPos(Application.GetWndHandle()).Y + 1);
+	end
+end]]</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>4</DesignCodeLine>
+<DesignCodeCol>5</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Mouse Wheel</Name>
+<Args>table e_Flags, number e_Delta, number e_X, number e_Y</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Object>
+<Type>20</Type>
+<Name>Watch</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>10</Top>
+<Bottom>33</Bottom>
+<Left>390</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script>if(xButton.GetState(this) == 0)then
+	Watch(false);
+elseif(xButton.GetState(this) == 1)then
+	Watch(true);
+end</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>3</DesignCodeLine>
+<DesignCodeCol>11</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Hyperlink</Name>
+<Args>string e_Hyperlink</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Watch Directory</Text>
+<TextColor format="hex">1c1c1c</TextColor>
+<EnableMarkup>0</EnableMarkup>
+<ButtonImage/>
+<TextAlignment>2</TextAlignment>
+<ImageAlignment>0</ImageAlignment>
+<ImageTextRelation>3</ImageTextRelation>
+<Theme>5</Theme>
+<Style>1</Style>
+<State>0</State>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Object>
+<Object>
+<Type>9</Type>
+<Name>FileList</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>12</AutoResize>
+<Coordinates>
+<Top>0</Top>
+<Bottom>310</Bottom>
+<Left>0</Left>
+<Right>381</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Double-Click</Name>
+<Args/>
+<Script>--local Data = ExplodeString(ListBox.GetItemData(this, ListBox.GetSelected(this)[1]), "|");
+--Dialog.Message(Data[1], Data[2]);</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1</DesignCodeLine>
+<DesignCodeCol>2</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Select</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Key</Name>
+<Args>number e_Key, table e_Modifiers</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Focus</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Check</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions/>
+<Text>
+<TextColor>13617863</TextColor>
+<BackgroundColor>4669499</BackgroundColor>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Text>
+<Window>
+<BorderStyle>0</BorderStyle>
+<VerticalScrollbar>1</VerticalScrollbar>
+<HorizontalScrollbar>0</HorizontalScrollbar>
+<Sort>0</Sort>
+<MultipleSelect>1</MultipleSelect>
+<ReadOrder>0</ReadOrder>
+<CheckList>0</CheckList>
+</Window>
+<ListBoxItems/>
+</Object>
+<Object>
+<Type>20</Type>
+<Name>clean</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>0</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>40</Top>
+<Bottom>63</Bottom>
+<Left>390</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script>ListBox.DeleteItem("FileList", -1);
+
+CheckList();</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>2</DesignCodeLine>
+<DesignCodeCol>12</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Hyperlink</Name>
+<Args>string e_Hyperlink</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Clean List</Text>
+<TextColor format="hex">1c1c1c</TextColor>
+<EnableMarkup>0</EnableMarkup>
+<ButtonImage/>
+<TextAlignment>2</TextAlignment>
+<ImageAlignment>0</ImageAlignment>
+<ImageTextRelation>3</ImageTextRelation>
+<Theme>2</Theme>
+<Style>0</Style>
+<State>0</State>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Object>
+<Object>
+<Type>20</Type>
+<Name>remove</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>0</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>70</Top>
+<Bottom>93</Bottom>
+<Left>390</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script>local ID = (1);
+
+while(ListBox.GetSelected("FileList"))do
+	ListBox.DeleteItem("FileList", ID);
+	
+	ID = (ID+1);
+end
+
+CheckList();</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>8</DesignCodeLine>
+<DesignCodeCol>12</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Hyperlink</Name>
+<Args>string e_Hyperlink</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Remove Selected</Text>
+<TextColor format="hex">1c1c1c</TextColor>
+<EnableMarkup>0</EnableMarkup>
+<ButtonImage/>
+<TextAlignment>2</TextAlignment>
+<ImageAlignment>0</ImageAlignment>
+<ImageTextRelation>3</ImageTextRelation>
+<Theme>2</Theme>
+<Style>0</Style>
+<State>0</State>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Object>
+<Object>
+<Type>40</Type>
+<Name>Logs</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>14</AutoResize>
+<Coordinates>
+<Top>330</Top>
+<Bottom>441</Bottom>
+<Left>0</Left>
+<Right>500</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Create</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Select</Name>
+<Args>number e_Index</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On DoubleClick</Name>
+<Args>number e_Index</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On RightClick</Name>
+<Args>number e_Index</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Focus</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On MB-LeftClick</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On MB-RightClick</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On CheckBox</Name>
+<Args>number e_Index , boolean e_Checked</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On DropFiles</Name>
+<Args>number e_Count</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On SearchBtn</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On LinkClk</Name>
+<Args>string e_Url</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On TTLinkClk</Name>
+<Args>string e_Url</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions/>
+<PLUGIN>
+<DLLFile>ListBoxEx\ListBoxEx.apo</DLLFile>
+<CustomData>5525326,4669499,4669499,0,0,0,1,0,13617863,4669499,4669499,4669499,1,790,0,0,0,0,0,0,1,5986126,-11,400,0,0,0,0,Segoe UI</CustomData>
+</PLUGIN>
+<MouseOverSndMode>0</MouseOverSndMode>
+<MouseOverSound/>
+<MouseClickSndMode>0</MouseClickSndMode>
+<MouseClickSound/>
+</Object>
+<Object>
+<Type>20</Type>
+<Name>Push</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>0</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>130</Top>
+<Bottom>153</Bottom>
+<Left>390</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script>local MySQLFail = (false);
+
+if(xButton.GetState("Watch") == 1)then
+	Watch(false);
+	
+	xButton.SetState("Watch", BTN_UP);
+	xButton.SetEnabled("Watch", false);
+end
+
+StatusDlg.Show(MB_ICONNONE, false);
+--StatusDlg.SetAutoSize(true);
+StatusDlg.SetMeterRange(0, 100);
+StatusDlg.ShowProgressMeter(true);
+StatusDlg.ShowCancelButton(true, "Cancel");
+StatusDlg.SetTitle("Push Update");
+
+StatusDlg.SetStatusText("Creating Temp Folder...");
+
+Folder.Create(TempFolder);
+local CreateFolderError = Application.GetLastError();
+if(CreateFolderError ~= 0)then
+	PrintLog("Stage 1 [Error] : ".._tblErrorMessages[CreateFolderError], nil, "ERROR");
+	
+	StatusDlg.Hide();
+else
+	--FORMAT: YYYY_MM_DD-HH-MM-SS.zip
+	local ZipName = String.Replace(System.GetDate(DATE_FMT_ISO), "-", "_", true).."-"..String.Replace(System.GetTime(TIME_FMT_MIL), ":", "_", true);
+	ZipPath = (_SourceFolder.."\\"..ZipName..".zip");
+	
+	--[[local function CopyProcess(Path)
+		local PathData = String.SplitPath(Path);
+		local Type = File.GetAttributes(Data[2]);
+			
+		if(Type.Directory == true)then -- Folder
+			local BuildingPath = (TempFolder);
+			
+			for _, FolderName in pairs(DelimitedToTable(String.Replace(Path, WorkingDirectory, "", true), "\\")) do
+				Folder.Create(BuildingPath.."\\"..FolderName);
+				BuildingPath = (BuildingPath.."\\"..FolderName);
+			end
+		elseif(Type.Archived == true)then -- File
+			local Split	= String.SplitPath(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true));
+			
+			if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+			else -- if folder of file not exist
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Path, WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+			
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				end
+			end
+		end
+	end]]
+	StatusDlg.SetMessage("Stage 1/"..TotalStages);
+	StatusDlg.SetStatusText("Copying Files and Folders...");
+	
+	for ID = 1, ListBox.GetCount("FileList") do
+		local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|");
+		local PathData = String.SplitPath(Data[2]);
+		local Type = File.GetAttributes(Data[2]);
+		
+		if(Type.Directory == true)then -- Folder
+			local BuildingPath = (TempFolder);
+			
+			for _, FolderName in pairs(DelimitedToTable(String.Replace(Data[2], WorkingDirectory, "", true), "\\")) do
+				Folder.Create(BuildingPath.."\\"..FolderName);
+				BuildingPath = (BuildingPath.."\\"..FolderName);
+			end
+		--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
+			for _, sPath in pairs(File.Find(Data[2].."\\", "*.*", true, false, nil, FileFindCallback)) do
+				if(StatusDlg.IsCancelled() == true)then
+					StatusDlg.Hide();
+					break;
+				else
+					CopyProcess(sPath);
+				end
+			end]]
+		elseif(Type.Archived == true)then -- File
+			local Split	= String.SplitPath(String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true));
+			
+			if(Folder.DoesExist(Split.Drive..Split.Folder))then
+				File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				CreateCRC32List(ZipName, Data[2]);
+			else -- if folder of file not exist
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Data[2], WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+				
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+					CreateCRC32List(ZipName, Data[2]);
+				end
+			end
+		end
+		
+		if(StatusDlg.IsCancelled() == true)then
+			StatusDlg.Hide();
+			break;
+		end
+	end
+	
+	StatusDlg.SetMessage("Stage 2/"..TotalStages);
+	StatusDlg.SetStatusText("Compressing Files...");
+	StatusDlg.SetMeterPos(0);
+	
+	Zip.Add(ZipPath, {TempFolder.."\\*.*"}, true, "", tonumber(INIFile.GetValue(SettingsFile, "General", "CompressRatio")), ZipCallback, true);
+	local ZIPError = Application.GetLastError();
+	if(ZIPError ~= 0)then
+		PrintLog("Stage 2 [ZIP Error] : ".._tblErrorMessages[ZIPError], nil, "ERROR");
+		
+		StatusDlg.Hide();
+	else
+		StatusDlg.SetMessage("Stage 3/"..TotalStages);
+		StatusDlg.SetStatusText("Cleaning residue");
+		StatusDlg.SetMessage("Cleaning TEMP Folder...");
+		
+		Folder.DeleteTree(TempFolder.."\\", FolderDeleteTreeCallback);
+		--[[
+		if(GetConfig("General", "CleanAfterUpload") == "true")then
+			local Split = String.SplitPath(ZipPath);
+			if(File.DoesExist(ZipPath))then
+				StatusDlg.SetMessage("Deleting residual Update File: "..Split.Filename..Split.Extension.."...");
+				
+				File.Delete(ZipPath, false, false, false, FileDeleteCallback);
+			end
+		end
+		]]
+		StatusDlg.SetMessage("Stage 4/"..TotalStages);
+		StatusDlg.SetStatusText("(Step 1/4) Connecting to FTP Server...");
+		StatusDlg.SetMeterPos(0);
+		
+		FTP.Connect(FTPHost, FTPUsername, FTPPassword, "", true);
+		local FTPError = Application.GetLastError();
+		if(FTPError ~= FTP.OK)then
+			StatusDlg.SetMessage("Connection to FTP Server failed.");
+			StatusDlg.SetStatusText(FTPError);
+			StatusDlg.Hide();
+			
+			PrintLog("Stage 4 [FTP Error] : Failed to connect to FTP Server. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+		elseif(FTPError == FTP.OK)then
+			FTPDownloadStatusText = ("(Step 2/4) Getting Version from version.txt...");
+			StatusDlg.SetMeterPos(0);
+			
+			FTP.ChangeDir("/"..FTPPath);
+			
+			local VersionFileCheck = FTP.GetFileInfo("version.txt");
+			if(VersionFileCheck == nil)then
+				PrintLog("Stage 4 [FTP WARN] : File version.txt not exist. It gonna be Created with Value 1 as default.", _tblErrorMessages[FTPError], "WARNING");
+				
+				Version = 0;
+			else
+				FTP.Download("version.txt", TempVersionFile, FTPDownloadCallback);
+				local FTPError = Application.GetLastError();
+				if(FTPError ~= FTP.OK)then
+					StatusDlg.Hide();
+					
+					PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+				elseif(FTPError == FTP.OK)then
+					Version = TextFile.ReadToString(TempVersionFile);
+				end
+			end
+			
+			FTPUploadStatusText = ("(Step 3/4) Uploading Update to FTP Server...");
+			StatusDlg.SetMeterPos(0);
+			
+			FTP.Upload(ZipPath, (Version + 1)..".zip", FTPUploadCallback);
+			local FTPError = Application.GetLastError();
+			if(FTPError ~= FTP.OK)then
+				StatusDlg.Hide();
+				
+				PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+			else
+				FTPUploadStatusText = ("(Step 4/4) Uploading Version File to FTP Server...");
+				StatusDlg.SetMeterPos(0);
+				
+				TextFile.WriteFromString(TempVersionFile, Version + 1, false);
+				
+				FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
+				local FTPError = Application.GetLastError();
+				if(FTPError ~= FTP.OK)then
+					StatusDlg.Hide();
+					
+					PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+				else
+					StatusDlg.SetMessage("Stage 5/"..TotalStages);
+					StatusDlg.SetStatusText("(Step 1/2) Connecting to DataBase Server...");
+					StatusDlg.ShowProgressMeter(false);
+					
+					MySQLConnection, MySQLError = MySQL:connect(MySQLDatabase, MySQLUsername, MySQLPassword, MySQLHost, 3306);
+					if(MySQLError ~= nil)then
+						StatusDlg.SetMessage("Connection to FTP Server failed.");
+						StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+						StatusDlg.Hide();
+						
+						PrintLog("Stage 5 [SQL Error] : Failed to connect to DataBase Server. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+						
+						MySQLFail = (true);
+					else
+						StatusDlg.SetStatusText("(Step 2/2) Update Version in DataBase...");
+						
+						MySQLCursor, MySQLError = MySQLConnection:execute("SELECT a_min, a_max FROM "..MySQLDatabase..".t_clientversion1");
+						if(MySQLError ~= nil)then	-- Not exist t_clientserver or a_min or a_max
+							PrintLog("Stage 5 [SQL WARN] : t_clientversion not exist. It gonna be created with Values a_min: "..(Version + 1).." and a_max: 999", nil, "WARNING");
+
+							MySQLCursor, MySQLError = MySQLConnection:execute("CREATE TABLE t_clientversion (a_min int(11) NOT NULL DEFAULT 0, a_max int(11) NOT NULL DEFAULT 0) ENGINE=MyISAM DEFAULT CHARSET=euckr COLLATE=euckr_korean_ci");
+							if(MySQLError ~= nil)then
+								StatusDlg.SetMessage("Create t_clientversion Table");
+								StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+								StatusDlg.Hide();
+													
+								PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+								
+								MySQLFail = (true);
+							else
+								MySQLCursor, MySQLError = MySQLConnection:execute("INSERT INTO "..MySQLDatabase..".t_clientversion (a_min, a_max) VALUES ("..(Version + 1)..", 999)");
+								if(MySQLError ~= nil)then
+									StatusDlg.SetMessage("Create t_clientversion Table");
+									StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+									StatusDlg.Hide();
+														
+									PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+									
+									MySQLFail = (true);
+								else
+									MySQLCursor, MySQLError = MySQLConnection:execute("ALTER TABLE "..MySQLDatabase..".t_clientversion ADD PRIMARY KEY (a_max, a_min)");
+									if(MySQLError ~= nil)then
+										StatusDlg.SetMessage("Create t_clientversion Table");
+										StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+										StatusDlg.Hide();
+													
+										PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+										
+										MySQLFail = (true);
+									else
+										StatusDlg.SetMessage("Update Ready!");
+										StatusDlg.SetStatusText("");	
+										StatusDlg.Hide();
+										
+										PrintLog("Update Process Completed!", nil, "INFO");
+										
+										xButton.SetEnabled("Compress", false);
+										xButton.SetEnabled("Upload", false);
+										xButton.SetEnabled("UpdateDB", false);
+										xButton.SetEnabled("Push", false);
+									end
+								end
+							end
+						else
+							MySQLCursor, MySQLError = MySQLConnection:execute("UPDATE "..MySQLDatabase..".t_clientversion SET a_min="..(Version + 1));
+							if(MySQLError ~= nil)then
+								StatusDlg.SetMessage("Update Version in DataBase failed.");
+								StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+								StatusDlg.Hide();
+								
+								PrintLog("Stage 5 [SQL Error] : Update Version in DataBase failed. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+							else
+								StatusDlg.SetMessage("Update Ready!");
+								StatusDlg.SetStatusText("");	
+								StatusDlg.Hide();
+								
+								PrintLog("Update Process Completed!", nil, "INFO");
+								
+								xButton.SetEnabled("Compress", false);
+								xButton.SetEnabled("Upload", false);
+								xButton.SetEnabled("UpdateDB", false);
+								xButton.SetEnabled("Push", false);
+							end
+						end
+					end
+					
+					if(MySQLFail)then
+						PrintLog("Stage 5 [SQL Error] : Could not complete the SQL step, the version in the version.txt file will be reverted. However the .zip file will remain in /"..FTPPath.."/patches.", nil, "INFO");
+						
+						TextFile.WriteFromString(TempVersionFile, Version, false);
+						
+						FTPUploadStatusText = ("Uploading Version File to FTP Server...");
+						StatusDlg.SetMeterPos(0);
+						
+						FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
+						local FTPError = Application.GetLastError();
+						if(FTPError ~= FTP.OK)then
+							StatusDlg.Hide();
+							
+							PrintLog("Rollback Process : Cannot Upload Reverted version.txt file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+						else
+							PrintLog("Rollback Process : version.txt file was Reverted Successfully", nil, "INFO");
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+xButton.SetEnabled("Watch", true);</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>171</DesignCodeLine>
+<DesignCodeCol>18</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Hyperlink</Name>
+<Args>string e_Hyperlink</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Push Update</Text>
+<TextColor format="hex">1c1c1c</TextColor>
+<EnableMarkup>0</EnableMarkup>
+<ButtonImage/>
+<TextAlignment>5</TextAlignment>
+<ImageAlignment>0</ImageAlignment>
+<ImageTextRelation>3</ImageTextRelation>
+<Theme>2</Theme>
+<Style>0</Style>
+<State>0</State>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Object>
+<Object>
+<Type>15</Type>
+<Name>genCRC</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>0</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>160</Top>
+<Bottom>191</Bottom>
+<Left>400</Left>
+<Right>481</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Generate CheckList</Text>
+<NormalColor format="hex">000000</NormalColor>
+<HighlightColor format="hex">000000</HighlightColor>
+<MouseDownColor format="hex">000000</MouseDownColor>
+<Disabled format="hex">c0c0c0</Disabled>
+<Alignment>0</Alignment>
+<ButtonAlign>0</ButtonAlign>
+<RTLReadingOrder>0</RTLReadingOrder>
+<Checked>0</Checked>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<Font>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Font>
+</Object>
+<Object>
+<Type>20</Type>
+<Name>createzip</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>0</Enabled>
+<ToolTip>If just want create .Zip file</ToolTip>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>100</Top>
+<Bottom>123</Bottom>
+<Left>390</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script>if(xButton.GetState("Watch") == 1)then
+	Watch(false);
+	
+	xButton.SetState("Watch", BTN_UP);
+	xButton.SetEnabled("Watch", false);
+end
+
+StatusDlg.Show(MB_ICONNONE, false);
+--StatusDlg.SetAutoSize(true);
+StatusDlg.SetMeterRange(0, 100);
+StatusDlg.ShowProgressMeter(true);
+StatusDlg.ShowCancelButton(true, "Cancel");
+StatusDlg.SetTitle("Push Update");
+
+StatusDlg.SetStatusText("Creating Temp Folder...");
+
+Folder.Create(TempFolder);
+local CreateFolderError = Application.GetLastError();
+if(CreateFolderError ~= 0)then
+	PrintLog("Stage 1 [Error] : ".._tblErrorMessages[CreateFolderError], nil, "ERROR");
+else
+	--FORMAT: YYYY_MM_DD-HH-MM-SS.zip
+	local ZipName = String.Replace(System.GetDate(DATE_FMT_ISO), "-", "_", true).."-"..String.Replace(System.GetTime(TIME_FMT_MIL), ":", "_", true);
+	ZipPath = (_SourceFolder.."\\"..ZipName..".zip");
+	
+	--[[local function CopyProcess(Path)
+		local PathData = String.SplitPath(Path);
+		local Type = File.GetAttributes(Data[2]);
+			
+		if(Type.Directory == true)then -- Folder
+			local BuildingPath = (TempFolder);
+			
+			for _, FolderName in pairs(DelimitedToTable(String.Replace(Path, WorkingDirectory, "", true), "\\")) do
+				Folder.Create(BuildingPath.."\\"..FolderName);
+				BuildingPath = (BuildingPath.."\\"..FolderName);
+			end
+		elseif(Type.Archived == true)then -- File
+			local Split	= String.SplitPath(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true));
+			
+			if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+			else -- if folder of file not exist
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Path, WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+			
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				end
+			end
+		end
+	end]]
+	StatusDlg.SetMessage("Stage 1/"..TotalStages);
+	StatusDlg.SetStatusText("Copying Files and Folders...");
+	
+	for ID = 1, ListBox.GetCount("FileList") do
+		local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|");
+		local PathData = String.SplitPath(Data[2]);
+		local Type = File.GetAttributes(Data[2]);
+		
+		if(Type.Directory == true)then -- Folder
+			local BuildingPath = (TempFolder);
+			
+			for _, FolderName in pairs(DelimitedToTable(String.Replace(Data[2], WorkingDirectory, "", true), "\\")) do
+				Folder.Create(BuildingPath.."\\"..FolderName);
+				BuildingPath = (BuildingPath.."\\"..FolderName);
+			end
+		--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
+			for _, sPath in pairs(File.Find(Data[2].."\\", "*.*", true, false, nil, FileFindCallback)) do
+				if(StatusDlg.IsCancelled() == true)then
+					StatusDlg.Hide();
+					break;
+				else
+					CopyProcess(sPath);
+				end
+			end]]
+		elseif(Type.Archived == true)then -- File
+			local Split	= String.SplitPath(String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true));
+			
+			if(Folder.DoesExist(Split.Drive..Split.Folder))then
+				File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				
+				CreateCRC32List(ZipName, Data[2]);
+			else -- if folder of file not exist
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Data[2], WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+				
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+					
+					CreateCRC32List(ZipName, Data[2]);
+				end
+			end
+		end
+		
+		if(StatusDlg.IsCancelled() == true)then
+			StatusDlg.Hide();
+			break;
+		end
+	end
+	
+	StatusDlg.SetMessage("Stage 2/"..TotalStages);
+	StatusDlg.SetStatusText("Compressing Files...");
+	StatusDlg.SetMeterPos(0);
+	
+	Zip.Add(ZipPath, {TempFolder.."\\*.*"}, true, "", tonumber(INIFile.GetValue(SettingsFile, "General", "CompressRatio")), ZipCallback, true);
+	local ZIPError = Application.GetLastError();
+	if(ZIPError ~= 0)then
+		PrintLog("Stage 2 [ZIP Error] : ".._tblErrorMessages[ZIPError], nil, "ERROR");
+		
+		StatusDlg.Hide();
+	else
+		StatusDlg.SetMessage("Stage 3/"..TotalStages);
+		StatusDlg.SetStatusText("Cleaning residue");
+		StatusDlg.SetMessage("Cleaning TEMP Folder...");
+		
+		Folder.DeleteTree(TempFolder.."\\", FolderDeleteTreeCallback);
+		
+		StatusDlg.Hide();
+	end
+end
+
+xButton.SetEnabled("Watch", true);</Script>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>96</DesignCodeLine>
+<DesignCodeCol>5</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Hyperlink</Name>
+<Args>string e_Hyperlink</Args>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Create Patch File</Text>
+<TextColor format="hex">1c1c1c</TextColor>
+<EnableMarkup>0</EnableMarkup>
+<ButtonImage/>
+<TextAlignment>5</TextAlignment>
+<ImageAlignment>0</ImageAlignment>
+<ImageTextRelation>3</ImageTextRelation>
+<Theme>2</Theme>
+<Style>0</Style>
+<State>0</State>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Object>
+<Object>
+<Type>40</Type>
+<Name>Plugin1</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>3</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>14</AutoResize>
+<Coordinates>
+<Top>320</Top>
+<Bottom>321</Bottom>
+<Left>40</Left>
+<Right>491</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1814981733</DesignCodeLine>
+<DesignCodeCol>27502</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1852583424</DesignCodeLine>
+<DesignCodeCol>7012459</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>5857125</DesignCodeLine>
+<DesignCodeCol>1046835321</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On RightClick</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>15145</DesignCodeLine>
+<DesignCodeCol>1093554176</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions/>
+<PLUGIN>
+<DLLFile>ShapeEx\ShapeEx.apo</DLLFile>
+<CustomData>0,8421504,2,8421504,30,30,110,30,20,2,5,0,0</CustomData>
+</PLUGIN>
+<MouseOverSndMode>0</MouseOverSndMode>
+<MouseOverSound/>
+<MouseClickSndMode>0</MouseClickSndMode>
+<MouseClickSound/>
+</Object>
+<Object>
+<Type>2</Type>
+<Name>Paragraph1</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip/>
+<Cursor>0</Cursor>
+<Group>3</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>10</AutoResize>
+<Coordinates>
+<Top>308</Top>
+<Bottom>339</Bottom>
+<Left>0</Left>
+<Right>41</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>4079394</DesignCodeLine>
+<DesignCodeCol>658688</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>7173224</DesignCodeLine>
+<DesignCodeCol>1694501389</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>1701603654</DesignCodeLine>
+<DesignCodeCol>658750</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>4079394</DesignCodeLine>
+<DesignCodeCol>7827300</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Text>
+<Body>Logs</Body>
+<NormalColor>8421504</NormalColor>
+<HighlightColor>0</HighlightColor>
+<MouseDownColor>0</MouseDownColor>
+<DisabledColor>12632256</DisabledColor>
+<BorderColor>0</BorderColor>
+<BackColor>16777215</BackColor>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+<Alignment>1</Alignment>
+<TransBG>1</TransBG>
+<VSMode>2</VSMode>
+<HSMode>2</HSMode>
+<SBStyle>0</SBStyle>
+<SBSkin/>
+<Border>0</Border>
+<MouseOverSndMode>0</MouseOverSndMode>
+<MouseOverSound/>
+<MouseClickSndMode>0</MouseClickSndMode>
+<MouseClickSound/>
+</Text>
+</Object>
+<HGuidelines>
+<Guideline>
+<pt>380</pt>
+<locked>0</locked>
+</Guideline>
+<Guideline>
+<pt>490</pt>
+<locked>0</locked>
+</Guideline>
+</HGuidelines>
+<VGuidelines>
+<Guideline>
+<pt>10</pt>
+<locked>0</locked>
+</Guideline>
+</VGuidelines>
+</Page>
+<SugDialogs/>
+<MissingTechs>
+<DlgTitle>Missing Technologies</DlgTitle>
+<DlgMsg>This program requires the following technologies which cannot be located on your system.
+
+Please double-click on each item to find out how to install it.</DlgMsg>
+<BtnAbort>Abort</BtnAbort>
+<BtnCancel>Continue</BtnCancel>
+<BtnHelp>Help</BtnHelp>
+<ShowHelpBtn>0</ShowHelpBtn>
+<HelpURL>http://www.yourdomain.com/help.htm</HelpURL>
+</MissingTechs>
+<ProgramPrefs>
+<OutputFolder>D:\Documents\AutoPlay Media Studio 8\Output\LastChaos Update Helper 2022</OutputFolder>
+<EXEName>Lastchaos Update Helper.exe</EXEName>
+<EnableAutoPlayFeatureBTF>0</EnableAutoPlayFeatureBTF>
+<EnableAutoPlayFeatureCDRW>1</EnableAutoPlayFeatureCDRW>
+<EnableAutoPlayFeatureISO>1</EnableAutoPlayFeatureISO>
+<EnableAutoPlayFeatureSFX>0</EnableAutoPlayFeatureSFX>
+<TimeStampFilesBTF>1</TimeStampFilesBTF>
+<TimeStampFilesCDRW>0</TimeStampFilesCDRW>
+<TimeStampFilesISO>0</TimeStampFilesISO>
+<ISOImageFile/>
+<SelfExtractingZIPfile/>
+<ZIPMessage>Loading</ZIPMessage>
+<ZIPShowProgress>1</ZIPShowProgress>
+<CDVolumeIdentifier>NEWDISC</CDVolumeIdentifier>
+<CacheFileData>1</CacheFileData>
+<UseBurnProof>1</UseBurnProof>
+<BuildType>1</BuildType>
+<DriveLetter/>
+<UsePassword>0</UsePassword>
+<OpenFolder>1</OpenFolder>
+<ObscureFilenames>1</ObscureFilenames>
+<ObscureDataFolder>Data</ObscureDataFolder>
+</ProgramPrefs>
+</DocumentData>
