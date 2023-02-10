@@ -17,18 +17,18 @@
 <ProjectInfo ToolTipStyle="0">
 <Office2007Theme Theme="5"/>
 <WindowStyles>
-<Width>500</Width>
-<Height>440</Height>
-<WindowTitle>LastChaos Update Helper 2022/3 [BETA]</WindowTitle>
+<Width>800</Width>
+<Height>600</Height>
+<WindowTitle>LastChaos Update Helper 2022/3 [BETA 2]</WindowTitle>
 <WindowStyle>0</WindowStyle>
 <FillColor>0</FillColor>
 </WindowStyles>
 <WindowOptions>
 <Movable>1</Movable>
-<AlwaysOnTop>1</AlwaysOnTop>
+<AlwaysOnTop>0</AlwaysOnTop>
 <Resizable>1</Resizable>
-<MinWidth>500</MinWidth>
-<MinHeight>440</MinHeight>
+<MinWidth>600</MinWidth>
+<MinHeight>500</MinHeight>
 </WindowOptions>
 <TransparentWindow>
 <TransparentImage/>
@@ -67,37 +67,39 @@
 WorkingDirectory		= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "WorkingDirectory");
 TempFolder				= (_SourceFolder.."\\Temp");
 TempVersionFile			= (_SourceFolder.."\\Version.tmp");
+TmpCheckListFile		= (_SourceFolder.."\\CheckList.tmp");
 Version					= (nil);
 SettingsFile			= (_SourceFolder.."\\Settings.ini");
 ZipPath					= ("");
-TotalStages				= (5);
+TotalStages				= (4);
 FTPDownloadStatusText	= ("");
 FTPUploadStatusText 	= ("");
 FTPHost					= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPHost");
 FTPUsername				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPUsername");
 FTPPassword				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPPassword");
-FTPPath					= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPPath");
+FTPUpdates				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPUpdates");
+FTPClient				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "FTPClient");
 MySQLHost				= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLHost");
 MySQLUsername			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLUsername");
 MySQLPassword			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLPassword");
 MySQLDatabase			= INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "MySQLDBName");
+Verbose					= tonumber(INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "Verbose"));
+DeletedFiles			= ({});
 ----------------------------------------------------------------
-Theme				= ({BGColor = "0xCDCFD4", RedColor = "0xFF6962", GreenColor = "0x2ABF89", BlueColor = "0x61A9FE", YellowColor = "0xFEDF61"});
-Theme.LogTextColor	= ("0xC7CACF"); --Messages / Tooltips / Menu Bar
-Theme.LogBGColor0	= ("0x3B4047"); --Default
-Theme.LogBGColor1	= ("0x44494F");	--Alternated
-Theme.LogBGColor2	= ("0x4E575B");	--Highlight
-Theme.LogBGColor3	= ("0x4E4F54");	--Selected
+Theme					= ({BGColor = "0xCDCFD4", RedColor = "0xFF6962", GreenColor = "0x2ABF89", BlueColor = "0x61A9FE", YellowColor = "0xFEDF61"});
+Theme.LogTextColor		= ("0xC7CACF"); --Messages / Tooltips / Menu Bar
+Theme.LogBGColor0		= ("0x3B4047"); --Default
+Theme.LogBGColor1		= ("0x44494F");	--Alternated
+Theme.LogBGColor2		= ("0x4E575B");	--Highlight
+Theme.LogBGColor3		= ("0x4E4F54");	--Selected
 
---[[
-Input.SetText("1", String.AbbreviateFilePath(INIFile.GetValue(SettingsFile, "General", "ClientFolderPath"), 24));
+--[[Input.SetText("1", String.AbbreviateFilePath(INIFile.GetValue(SettingsFile, "General", "ClientFolderPath"), 24));
 
 if(GetConfig("General", "CleanAfterUpload") == "true")then
 	CheckBox.SetChecked("2", true);
 else
 	CheckBox.SetChecked("CONFIG_CLEANAFTERUPLOAD", false);
 end
-]]
 
 function LoadProfiles(Obj)
 	ComboBox.ResetContent(Obj);
@@ -123,7 +125,7 @@ function LoadProfiles(Obj)
 			end
 		end
 	end
-end
+end]]
 
 function PrintLog(Text, Tooltip, Type)
 	--[[
@@ -206,19 +208,19 @@ end
 
 function FTPDownloadCallback(Bytes, Total)
     if(Total ~= 0)then
-    	local Percent = Math.Floor(Bytes/Total*100);
+    	local Percent = Math.Floor(Bytes/(Total*100));
     	
-    	StatusDlg.SetMeterPos(Percent);
     	StatusDlg.SetStatusText(FTPDownloadStatusText.."\t("..Percent.."%)");
+    	StatusDlg.SetMeterPos(Percent);
     end
 end
 
 function FTPUploadCallback(Bytes, Total)
     if(Total ~= 0)then
-    	local Percent = Math.Floor(Bytes/Total*100);
+    	local Percent = Math.Floor(Bytes/(Total*100));
     	
-    	StatusDlg.SetMeterPos(Percent);
     	StatusDlg.SetStatusText(FTPUploadStatusText.."\t("..Percent.."%)");
+    	StatusDlg.SetMeterPos(Percent);
     end
 end
 
@@ -266,19 +268,13 @@ function CheckList()
 	if(TotalItems ~= -1 and TotalItems &gt; 0 and xButton.IsEnabled("Push") == false)then
 		xButton.SetEnabled("clean", true);
 		xButton.SetEnabled("remove", true);
-		xButton.SetEnabled("createzip", true);
+		--xButton.SetEnabled("createzip", true);
 		xButton.SetEnabled("Push", true);
 	elseif(TotalItems ~= -1 and TotalItems == 0 and xButton.IsEnabled("Push"))then
 		xButton.SetEnabled("clean", false);
 		xButton.SetEnabled("remove", false);
-		xButton.SetEnabled("createzip", false);
+		--xButton.SetEnabled("createzip", false);
 		xButton.SetEnabled("Push", false);
-	end
-end
-
-function CreateCRC32List(DescName, Path)
-	if(CheckBox.GetChecked("genCRC"))then
-		TextFile.WriteFromString(_SourceFolder.."\\"..DescName..".txt", File.GetCRC(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true))..","..String.Replace(Path, WorkingDirectory, "", true).."\r\n", true);
 	end
 end
 
@@ -288,12 +284,12 @@ function Watcher.GetEventDataTable(eventDataString)
 	local event = ({});
 	
 	if(Table.Count(tbReturn) == 2)then
-		event.Type = tbReturn[1];
-		event.Path = tbReturn[2];
+		event.Type = (tbReturn[1]);
+		event.Path = (tbReturn[2]);
 	elseif(Table.Count(tbReturn) == 3)then
-		event.Type = tbReturn[1];
-		event.Path = tbReturn[2];
-		event.OldPath = tbReturn[3];
+		event.Type = (tbReturn[1]);
+		event.Path = (tbReturn[2]);
+		event.OldPath = (tbReturn[3]);
 	end
 
 	return event;
@@ -340,13 +336,15 @@ function Watcher.GetEnableRaisingEvents(objRef)
 end
 
 function Watcher.GetLoggedEvent(objRef)
-	local eventDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedEvent", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
-	return Watcher.GetEventDataTable(eventDataString);
+--	local eventDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedEvent", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+--	return Watcher.GetEventDataTable(eventDataString);
+	return Watcher.GetEventDataTable(DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedEvent", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL));
 end
 
 function Watcher.GetLoggedError(objRef)
-	local errorDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedError", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
-	return GetErrorDataTable(errorDataString);
+	--local errorDataString = DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedError", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL);
+	--return GetErrorDataTable(errorDataString);
+	return GetErrorDataTable(DLL.CallFunction("FileSystemWatcher.dll", "GetLoggedError", "\""..objRef.."\"", DLL_RETURN_TYPE_STRING, DLL_CALL_STDCALL));
 end
 
 function Watcher.SetPath(objRef, path)
@@ -436,8 +434,8 @@ function Watch(Status)
 end</Script>
 <BookMarks count="0">
 </BookMarks>
-<DesignCodeLine>206</DesignCodeLine>
-<DesignCodeCol>35</DesignCodeCol>
+<DesignCodeLine>209</DesignCodeLine>
+<DesignCodeCol>38</DesignCodeCol>
 </Globals>
 <Defaults>
 <StartupPage>_PageFirst</StartupPage>
@@ -451,7 +449,7 @@ end</Script>
 <CustomSize>0</CustomSize>
 </TargetMedia>
 <Group>
-<CurrentGrounp>3</CurrentGrounp>
+<CurrentGrounp>5</CurrentGrounp>
 </Group>
 <ActionPlugins>
 <Plugin>FTP\FTP.lmd</Plugin>
@@ -496,7 +494,7 @@ end</Script>
 <Name>On Startup</Name>
 <Args/>
 <Script>if(File.DoesExist(_SourceFolder.."\\build.version"))then
-	TextFile.WriteFromString(_SourceFolder.."\\build.version", tonumber(TextFile.ReadToString(_SourceFolder.."\\build.version")) + 1, false);
+	--TextFile.WriteFromString(_SourceFolder.."\\build.version", tonumber(TextFile.ReadToString(_SourceFolder.."\\build.version")) + 1, false);
 end</Script>
 <TreeStates>
 <TreeState>0</TreeState>
@@ -504,7 +502,7 @@ end</Script>
 <TreeState>0</TreeState>
 </TreeStates>
 <DesignCodeLine>1</DesignCodeLine>
-<DesignCodeCol>126</DesignCodeCol>
+<DesignCodeCol>3</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -559,8 +557,8 @@ MySQL:close();</Script>
 <IconFilename>AutoPlay\Icons\NG.ico</IconFilename>
 <ReplaceVersionInfo>1</ReplaceVersionInfo>
 <FileVer1>0</FileVer1>
-<FileVer2>4</FileVer2>
-<FileVer3>4</FileVer3>
+<FileVer2>6</FileVer2>
+<FileVer3>2</FileVer3>
 <FileVer4>7</FileVer4>
 <ProductVer1>2</ProductVer1>
 <ProductVer2>0</ProductVer2>
@@ -655,18 +653,18 @@ MySQL:close();</Script>
 <Event>
 <Name>On Preload</Name>
 <Args/>
-<Script>WidthPost = (System.GetDisplayInfo().Width / 2 - Window.GetSize(Application.GetWndHandle()).Width / 2);
+<Script>--[[WidthPost = (System.GetDisplayInfo().Width / 2 - Window.GetSize(Application.GetWndHandle()).Width / 2);
 AppHeight = (Window.GetSize(Application.GetWndHandle()).Height);
 AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 
---Window.SetPos(Application.GetWndHandle(), WidthPost, 1 - AppHeight);</Script>
+Window.SetPos(Application.GetWndHandle(), WidthPost, 1 - AppHeight);]]</Script>
 <TreeStates>
-<TreeState>0</TreeState>
+<TreeState>2</TreeState>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>4</DesignCodeLine>
-<DesignCodeCol>2</DesignCodeCol>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>4</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -680,7 +678,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 <TreeState>0</TreeState>
 </TreeStates>
 <DesignCodeLine>0</DesignCodeLine>
-<DesignCodeCol>28</DesignCodeCol>
+<DesignCodeCol>2</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -729,7 +727,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 					
 					if(Data[2] == Status[1].Path or String.Find(Data[2], Status[1].Path, 1, true))then
 						ListBox.DeleteItem("FileList", ID-NEWID);
-						
+
 						NEWID = (NEWID+1);
 						
 						Found = (true);
@@ -745,8 +743,10 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 				end
 			end
 			
-			if not(Found)then
+			if not(Found)then	-- A.K.A item from list removed previously or not exist.
 				PrintLog("["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), nil, "INFO");
+				
+				table.insert(DeletedFiles, Status[1].Path);	------------------------------------------------------------------------
 			end
 		end
 		
@@ -762,7 +762,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 						local NewPath = String.Replace(Data[2], Status[1].OldPath, Status[1].Path, true);
 						
 						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(NewPath, WorkingDirectory, "", true));
-						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath);
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath.."|"..Status[1].OldPath);
 						
 						Found = (true);
 						
@@ -773,7 +773,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 						local NewPath = String.Replace(Data[2], Status[1].OldPath, Status[1].Path, true);
 						
 						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(NewPath, WorkingDirectory, "", true));
-						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath);
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..NewPath.."|"..Status[1].OldPath);
 						
 						Found = (true);
 					end
@@ -784,7 +784,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 				local Path = (Status[1].Path);
 				local Name = ExplodeString(Path, "\\");
 			
-				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path);
+				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path.."|"..Status[1].OldPath);
 			end
 		end
 		
@@ -799,14 +799,14 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 				if(String.SplitPath(Status[1].Path).Extension == "")then
 					if(String.Find(Data[2], Status[1].Path, 1, true))then
 						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true));
-						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path);
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path.."|"..Status[1].Path);
 						
 						Found = (true);
 					end
 				else -- File
 					if(Data[2] == Status[1].Path)then
 						ListBox.SetItemText("FileList", ID, System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true));
-						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path);
+						ListBox.SetItemData("FileList", ID, Data[1].."|"..Status[1].Path.."|"..Status[1].Path);
 						
 						Found = (true);
 						
@@ -819,7 +819,7 @@ AppWidth = (Window.GetSize(Application.GetWndHandle()).Width);
 				local Path = (Status[1].Path);
 				local Name = ExplodeString(Path, "\\");
 			
-				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path);
+				ListBox.AddItem("FileList", System.GetTime(TIME_FMT_MIL).." ["..Status[1].Event.."] : "..String.Replace(Status[1].Path, WorkingDirectory, "", true), Name[#Name].."|"..Path.."|"..Path);
 			end
 		end
 		
@@ -850,7 +850,7 @@ end</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>143</DesignCodeLine>
+<DesignCodeLine>145</DesignCodeLine>
 <DesignCodeCol>3</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
@@ -974,8 +974,8 @@ end]]</Script>
 <Coordinates>
 <Top>10</Top>
 <Bottom>33</Bottom>
-<Left>390</Left>
-<Right>491</Right>
+<Left>690</Left>
+<Right>791</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1110,9 +1110,9 @@ end</Script>
 <AutoResize>12</AutoResize>
 <Coordinates>
 <Top>0</Top>
-<Bottom>310</Bottom>
+<Bottom>319</Bottom>
 <Left>0</Left>
-<Right>381</Right>
+<Right>681</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1232,8 +1232,8 @@ end</Script>
 <Coordinates>
 <Top>40</Top>
 <Bottom>63</Bottom>
-<Left>390</Left>
-<Right>491</Right>
+<Left>690</Left>
+<Right>791</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1244,14 +1244,16 @@ end</Script>
 <Args/>
 <Script>ListBox.DeleteItem("FileList", -1);
 
+DeletedFiles = ({});
+
 CheckList();</Script>
 <TreeStates>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>2</DesignCodeLine>
-<DesignCodeCol>12</DesignCodeCol>
+<DesignCodeLine>1</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -1367,8 +1369,8 @@ CheckList();</Script>
 <Coordinates>
 <Top>70</Top>
 <Bottom>93</Bottom>
-<Left>390</Left>
-<Right>491</Right>
+<Left>690</Left>
+<Right>791</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1506,10 +1508,10 @@ CheckList();</Script>
 <TabIndex>-1</TabIndex>
 <AutoResize>14</AutoResize>
 <Coordinates>
-<Top>330</Top>
-<Bottom>441</Bottom>
+<Top>335</Top>
+<Bottom>600</Bottom>
 <Left>0</Left>
-<Right>500</Right>
+<Right>801</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1736,10 +1738,10 @@ CheckList();</Script>
 <TabIndex>-1</TabIndex>
 <AutoResize>5</AutoResize>
 <Coordinates>
-<Top>130</Top>
-<Bottom>153</Bottom>
-<Left>390</Left>
-<Right>491</Right>
+<Top>100</Top>
+<Bottom>123</Bottom>
+<Left>690</Left>
+<Right>791</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -1748,301 +1750,774 @@ CheckList();</Script>
 <Event>
 <Name>On Click</Name>
 <Args/>
-<Script>local MySQLFail = (false);
-
-if(xButton.GetState("Watch") == 1)then
+<Script>if(xButton.GetState("Watch") == 1)then
 	Watch(false);
 	
 	xButton.SetState("Watch", BTN_UP);
 	xButton.SetEnabled("Watch", false);
 end
 
+if(CheckBox.GetChecked("repairsystem"))then
+	TotalStages = (5);
+else
+	TotalStages = (4);
+end
+
+CheckBox.SetEnabled("repairsystem", false);
+
+--[[ con esto puedo obtener la linea actual
+	"("..(debug.getinfo(1, "l").currentline - 1)..")
+]]
+
 StatusDlg.Show(MB_ICONNONE, false);
 --StatusDlg.SetAutoSize(true);
 StatusDlg.SetMeterRange(0, 100);
 StatusDlg.ShowProgressMeter(true);
-StatusDlg.ShowCancelButton(true, "Cancel");
+--StatusDlg.ShowCancelButton(true, "Cancel");
 StatusDlg.SetTitle("Push Update");
 
 StatusDlg.SetStatusText("Creating Temp Folder...");
 
-Folder.Create(TempFolder);
-local CreateFolderError = Application.GetLastError();
-if(CreateFolderError ~= 0)then
-	PrintLog("Stage 1 [Error] : ".._tblErrorMessages[CreateFolderError], nil, "ERROR");
-	
-	StatusDlg.Hide();
-else
-	--FORMAT: YYYY_MM_DD-HH-MM-SS.zip
-	local ZipName = String.Replace(System.GetDate(DATE_FMT_ISO), "-", "_", true).."-"..String.Replace(System.GetTime(TIME_FMT_MIL), ":", "_", true);
-	ZipPath = (_SourceFolder.."\\"..ZipName..".zip");
-	
-	--[[local function CopyProcess(Path)
-		local PathData = String.SplitPath(Path);
-		local Type = File.GetAttributes(Data[2]);
-			
-		if(Type.Directory == true)then -- Folder
-			local BuildingPath = (TempFolder);
-			
-			for _, FolderName in pairs(DelimitedToTable(String.Replace(Path, WorkingDirectory, "", true), "\\")) do
-				Folder.Create(BuildingPath.."\\"..FolderName);
-				BuildingPath = (BuildingPath.."\\"..FolderName);
-			end
-		elseif(Type.Archived == true)then -- File
-			local Split	= String.SplitPath(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true));
-			
-			if(Folder.DoesExist(Split.Drive..Split.Folder))then
-					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-			else -- if folder of file not exist
-				local BuildingPath = (TempFolder);
-				
-				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Path, WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
-					Folder.Create(BuildingPath.."\\"..FolderName);
-					BuildingPath = (BuildingPath.."\\"..FolderName);
-				end
-			
-				if(Folder.DoesExist(Split.Drive..Split.Folder))then
-					File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-				end
-			end
-		end
-	end]]
-	StatusDlg.SetMessage("Stage 1/"..TotalStages);
-	StatusDlg.SetStatusText("Copying Files and Folders...");
-	
-	for ID = 1, ListBox.GetCount("FileList") do
-		local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|");
-		local PathData = String.SplitPath(Data[2]);
-		local Type = File.GetAttributes(Data[2]);
-		
-		if(Type.Directory == true)then -- Folder
-			local BuildingPath = (TempFolder);
-			
-			for _, FolderName in pairs(DelimitedToTable(String.Replace(Data[2], WorkingDirectory, "", true), "\\")) do
-				Folder.Create(BuildingPath.."\\"..FolderName);
-				BuildingPath = (BuildingPath.."\\"..FolderName);
-			end
-		--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
-			for _, sPath in pairs(File.Find(Data[2].."\\", "*.*", true, false, nil, FileFindCallback)) do
-				if(StatusDlg.IsCancelled() == true)then
-					StatusDlg.Hide();
-					break;
-				else
-					CopyProcess(sPath);
-				end
-			end]]
-		elseif(Type.Archived == true)then -- File
-			local Split	= String.SplitPath(String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true));
-			
-			if(Folder.DoesExist(Split.Drive..Split.Folder))then
-				File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-				CreateCRC32List(ZipName, Data[2]);
-			else -- if folder of file not exist
-				local BuildingPath = (TempFolder);
-				
-				for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Data[2], WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
-					Folder.Create(BuildingPath.."\\"..FolderName);
-					BuildingPath = (BuildingPath.."\\"..FolderName);
-				end
-				
-				if(Folder.DoesExist(Split.Drive..Split.Folder))then
-					File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-					CreateCRC32List(ZipName, Data[2]);
-				end
-			end
-		end
-		
-		if(StatusDlg.IsCancelled() == true)then
-			StatusDlg.Hide();
-			break;
-		end
-	end
-	
-	StatusDlg.SetMessage("Stage 2/"..TotalStages);
-	StatusDlg.SetStatusText("Compressing Files...");
-	StatusDlg.SetMeterPos(0);
-	
-	Zip.Add(ZipPath, {TempFolder.."\\*.*"}, true, "", tonumber(INIFile.GetValue(SettingsFile, "General", "CompressRatio")), ZipCallback, true);
-	local ZIPError = Application.GetLastError();
-	if(ZIPError ~= 0)then
-		PrintLog("Stage 2 [ZIP Error] : ".._tblErrorMessages[ZIPError], nil, "ERROR");
-		
-		StatusDlg.Hide();
-	else
-		StatusDlg.SetMessage("Stage 3/"..TotalStages);
-		StatusDlg.SetStatusText("Cleaning residue");
-		StatusDlg.SetMessage("Cleaning TEMP Folder...");
-		
-		Folder.DeleteTree(TempFolder.."\\", FolderDeleteTreeCallback);
-		--[[
-		if(GetConfig("General", "CleanAfterUpload") == "true")then
-			local Split = String.SplitPath(ZipPath);
-			if(File.DoesExist(ZipPath))then
-				StatusDlg.SetMessage("Deleting residual Update File: "..Split.Filename..Split.Extension.."...");
-				
-				File.Delete(ZipPath, false, false, false, FileDeleteCallback);
-			end
-		end
-		]]
-		StatusDlg.SetMessage("Stage 4/"..TotalStages);
-		StatusDlg.SetStatusText("(Step 1/4) Connecting to FTP Server...");
-		StatusDlg.SetMeterPos(0);
-		
+local function PushUpdate()
+	local function ConnectFTP(Stage)
 		FTP.Connect(FTPHost, FTPUsername, FTPPassword, "", true);
 		local FTPError = Application.GetLastError();
 		if(FTPError ~= FTP.OK)then
 			StatusDlg.SetMessage("Connection to FTP Server failed.");
-			StatusDlg.SetStatusText(FTPError);
-			StatusDlg.Hide();
 			
-			PrintLog("Stage 4 [FTP Error] : Failed to connect to FTP Server. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
-		elseif(FTPError == FTP.OK)then
-			FTPDownloadStatusText = ("(Step 2/4) Getting Version from version.txt...");
-			StatusDlg.SetMeterPos(0);
+			PrintLog("Stage "..Stage.." [FTP Error] : Failed to connect to FTP Server. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
 			
-			FTP.ChangeDir("/"..FTPPath);
-			
-			local VersionFileCheck = FTP.GetFileInfo("version.txt");
-			if(VersionFileCheck == nil)then
-				PrintLog("Stage 4 [FTP WARN] : File version.txt not exist. It gonna be Created with Value 1 as default.", _tblErrorMessages[FTPError], "WARNING");
-				
-				Version = 0;
-			else
-				FTP.Download("version.txt", TempVersionFile, FTPDownloadCallback);
-				local FTPError = Application.GetLastError();
-				if(FTPError ~= FTP.OK)then
-					StatusDlg.Hide();
-					
-					PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
-				elseif(FTPError == FTP.OK)then
-					Version = TextFile.ReadToString(TempVersionFile);
-				end
+			return false;
+		else
+			if(Verbose &gt; 0)then
+				PrintLog("Connected to FTP Server!", nil, "SUCCESS");
 			end
 			
-			FTPUploadStatusText = ("(Step 3/4) Uploading Update to FTP Server...");
+			return true;
+		end
+	end
+
+	Folder.Create(TempFolder);
+	local CreateFolderError = Application.GetLastError();
+	if(CreateFolderError ~= 0)then
+		PrintLog("Stage 1 [IO] : ".._tblErrorMessages[CreateFolderError].. " Cannot continue.", nil, "ERROR");
+	else
+		if(Verbose &gt; 0)then
+			PrintLog("Temp Folder has been Created!", nil, "SUCCESS");
+		end
+	
+		-- FORMAT: YYYY_MM_DD-HH_MM_SS.zip
+		local ZipName = String.Replace(System.GetDate(DATE_FMT_ISO), "-", "_", true).."-"..String.Replace(System.GetTime(TIME_FMT_MIL), ":", "_", true);
+		ZipPath = (_SourceFolder.."\\"..ZipName..".zip");
+		
+		--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
+		local function CopyProcess(Path)
+			local PathData = String.SplitPath(Path);
+			local Type = File.GetAttributes(Data[2]);
+				
+			if(Type.Directory == true)then -- Folder
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(Path, WorkingDirectory, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+			elseif(Type.Archived == true)then -- File
+				local Split	= String.SplitPath(String.Replace(Path, WorkingDirectory, TempFolder.."\\", true));
+				
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+						File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				else -- if folder of file not exist
+					local BuildingPath = (TempFolder);
+					
+					for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Path, WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+						Folder.Create(BuildingPath.."\\"..FolderName);
+						BuildingPath = (BuildingPath.."\\"..FolderName);
+					end
+				
+					if(Folder.DoesExist(Split.Drive..Split.Folder))then
+						File.Copy(Path, String.Replace(Path, WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+					end
+				end
+			end
+		end]]
+			
+		StatusDlg.SetMessage("Stage 1/"..TotalStages);
+		StatusDlg.SetStatusText("Copying Files and Folders...");
+		
+		for ID = 1, ListBox.GetCount("FileList") do
+			--if(StatusDlg.IsCancelled() == true)then	break;	end
+			
+			local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|");
+			local PathData = String.SplitPath(Data[2]);
+			local Type = File.GetAttributes(Data[2]);
+			
+			if(Type.Directory == true)then
+				local BuildingPath = (TempFolder);
+				
+				for _, FolderName in pairs(DelimitedToTable(String.Replace(Data[2], WorkingDirectory, "", true), "\\")) do
+					Folder.Create(BuildingPath.."\\"..FolderName);
+					
+					BuildingPath = (BuildingPath.."\\"..FolderName);
+				end
+				
+				--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
+				for _, sPath in pairs(File.Find(Data[2].."\\", "*.*", true, false, nil, FileFindCallback)) do
+					if(StatusDlg.IsCancelled() == true)then
+						StatusDlg.Hide();
+						break;
+					else
+						CopyProcess(sPath);
+					end
+				end]]
+			elseif(Type.Archived == true)then
+				local Split	= String.SplitPath(String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true));
+				
+				if(Folder.DoesExist(Split.Drive..Split.Folder))then
+					File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+				else
+					local BuildingPath = (TempFolder);
+					
+					for _, FolderName in pairs(DelimitedToTable(String.Replace(String.Replace(Data[2], WorkingDirectory, "", true), "\\"..PathData.Filename..PathData.Extension, "", true), "\\")) do
+						Folder.Create(BuildingPath.."\\"..FolderName);
+						
+						BuildingPath = (BuildingPath.."\\"..FolderName);
+					end
+					
+					if(Folder.DoesExist(Split.Drive..Split.Folder))then
+						File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
+					end
+				end
+			end
+		end
+		
+		StatusDlg.SetMessage("Stage 2/"..TotalStages);
+		StatusDlg.SetStatusText("Compressing Files...");
+		StatusDlg.SetMeterPos(0);
+		
+		Zip.Add(ZipPath, {TempFolder.."\\*.*"}, true, "", INIFile.GetValue(_SourceFolder.."\\Settings.ini", "Settings", "CompressRatio"), ZipCallback, true);
+		local ZIPError = Application.GetLastError();
+		if(ZIPError ~= 0)then
+			PrintLog("Stage 2 [ZIP Error] : ".._tblErrorMessages[ZIPError], nil, "ERROR");
+		else
+			if(Verbose &gt; 0)then
+				PrintLog("Patch file has been Created!", nil, "SUCCESS");
+			end
+			
+			StatusDlg.SetMessage("Stage 3/"..TotalStages);
+			StatusDlg.SetStatusText("(Step 1/4) Connecting to FTP Server...");
 			StatusDlg.SetMeterPos(0);
 			
-			FTP.Upload(ZipPath, (Version + 1)..".zip", FTPUploadCallback);
-			local FTPError = Application.GetLastError();
-			if(FTPError ~= FTP.OK)then
-				StatusDlg.Hide();
-				
-				PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
-			else
-				FTPUploadStatusText = ("(Step 4/4) Uploading Version File to FTP Server...");
+			if(ConnectFTP("3"))then
+				FTPDownloadStatusText = ("(Step 2/4) Getting Version from version.txt...");
 				StatusDlg.SetMeterPos(0);
 				
-				TextFile.WriteFromString(TempVersionFile, Version + 1, false);
-				
-				FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
+				FTP.ChangeDir("/"..FTPUpdates);
 				local FTPError = Application.GetLastError();
 				if(FTPError ~= FTP.OK)then
-					StatusDlg.Hide();
-					
-					PrintLog("Stage 4 [FTP Error] : Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+					PrintLog("Stage 3 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
 				else
-					StatusDlg.SetMessage("Stage 5/"..TotalStages);
-					StatusDlg.SetStatusText("(Step 1/2) Connecting to DataBase Server...");
-					StatusDlg.ShowProgressMeter(false);
-					
-					MySQLConnection, MySQLError = MySQL:connect(MySQLDatabase, MySQLUsername, MySQLPassword, MySQLHost, 3306);
-					if(MySQLError ~= nil)then
-						StatusDlg.SetMessage("Connection to FTP Server failed.");
-						StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
-						StatusDlg.Hide();
+					local VersionFileCheck = FTP.GetFileInfo("version.txt");
+					if(VersionFileCheck == nil)then
+						PrintLog("Stage 3 [FTP WARN] : File version.txt not exist. It gonna be Created with Value 1 as default.", _tblErrorMessages[FTPError], "WARNING");
 						
-						PrintLog("Stage 5 [SQL Error] : Failed to connect to DataBase Server. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
-						
-						MySQLFail = (true);
+						Version = 0;
 					else
-						StatusDlg.SetStatusText("(Step 2/2) Update Version in DataBase...");
-						
-						MySQLCursor, MySQLError = MySQLConnection:execute("SELECT a_min, a_max FROM "..MySQLDatabase..".t_clientversion");
-						if(MySQLError ~= nil)then	-- Not exist t_clientserver or a_min or a_max
-							PrintLog("Stage 5 [SQL WARN] : t_clientversion not exist. It gonna be created with Values a_min: "..(Version + 1).." and a_max: 999", nil, "WARNING");
-
-							MySQLCursor, MySQLError = MySQLConnection:execute("CREATE TABLE t_clientversion (a_min int(11) NOT NULL DEFAULT 0, a_max int(11) NOT NULL DEFAULT 0) ENGINE=MyISAM DEFAULT CHARSET=euckr COLLATE=euckr_korean_ci");
-							if(MySQLError ~= nil)then
-								StatusDlg.SetMessage("Create t_clientversion Table");
-								StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
-								StatusDlg.Hide();
-													
-								PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
-								
-								MySQLFail = (true);
-							else
-								MySQLCursor, MySQLError = MySQLConnection:execute("INSERT INTO "..MySQLDatabase..".t_clientversion (a_min, a_max) VALUES ("..(Version + 1)..", 999)");
-								if(MySQLError ~= nil)then
-									StatusDlg.SetMessage("Create t_clientversion Table");
-									StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
-									StatusDlg.Hide();
-														
-									PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
-									
-									MySQLFail = (true);
-								else
-									MySQLCursor, MySQLError = MySQLConnection:execute("ALTER TABLE "..MySQLDatabase..".t_clientversion ADD PRIMARY KEY (a_max, a_min)");
-									if(MySQLError ~= nil)then
-										StatusDlg.SetMessage("Create t_clientversion Table");
-										StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
-										StatusDlg.Hide();
-													
-										PrintLog("Stage 5 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
-										
-										MySQLFail = (true);
-									else
-										StatusDlg.SetMessage("Update Ready!");
-										StatusDlg.SetStatusText("");	
-										StatusDlg.Hide();
-										
-										PrintLog("Update Process Completed!", nil, "INFO");
-										
-										xButton.SetEnabled("Compress", false);
-										xButton.SetEnabled("Upload", false);
-										xButton.SetEnabled("UpdateDB", false);
-										xButton.SetEnabled("Push", false);
-									end
-								end
-							end
+						FTP.Download("version.txt", TempVersionFile, FTPDownloadCallback);
+						local FTPError = Application.GetLastError();
+						if(FTPError ~= FTP.OK)then
+							PrintLog("Stage 3 [FTP Error] : Cannot Download version.txt file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
 						else
-							MySQLCursor, MySQLError = MySQLConnection:execute("UPDATE "..MySQLDatabase..".t_clientversion SET a_min="..(Version + 1));
-							if(MySQLError ~= nil)then
-								StatusDlg.SetMessage("Update Version in DataBase failed.");
-								StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
-								StatusDlg.Hide();
-								
-								PrintLog("Stage 5 [SQL Error] : Update Version in DataBase failed. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
-							else
-								StatusDlg.SetMessage("Update Ready!");
-								StatusDlg.SetStatusText("");	
-								StatusDlg.Hide();
-								
-								PrintLog("Update Process Completed!", nil, "INFO");
-								
-								xButton.SetEnabled("Compress", false);
-								xButton.SetEnabled("Upload", false);
-								xButton.SetEnabled("UpdateDB", false);
-								xButton.SetEnabled("Push", false);
+							if(Verbose &gt; 0)then
+								PrintLog("version.txt File downloaded!", nil, "SUCCESS");
 							end
+							
+							Version = TextFile.ReadToString(TempVersionFile);
 						end
 					end
 					
-					if(MySQLFail)then
-						PrintLog("Stage 5 [SQL Error] : Could not complete the SQL step, the version in the version.txt file will be reverted. However the .zip file will remain in /"..FTPPath.."/patches.", nil, "INFO");
+					FTPUploadStatusText = ("(Step 3/4) Uploading Update to FTP Server...");
+					StatusDlg.SetMeterPos(0);
+					
+					FTP.Upload(ZipPath, (Version + 1)..".zip", FTPUploadCallback);
+					local FTPError = Application.GetLastError();
+					if(FTPError ~= FTP.OK)then
+						PrintLog("Stage 3 [FTP Error] : Cannot Upload patch file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+					else
+						if(Verbose &gt; 0)then
+							PrintLog("Patch File has been Uploaded!", nil, "SUCCESS");
+						end
 						
-						TextFile.WriteFromString(TempVersionFile, Version, false);
-						
-						FTPUploadStatusText = ("Uploading Version File to FTP Server...");
+						FTPUploadStatusText = ("(Step 4/4) Uploading Version File to FTP Server...");
 						StatusDlg.SetMeterPos(0);
 						
-						FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
-						local FTPError = Application.GetLastError();
-						if(FTPError ~= FTP.OK)then
-							StatusDlg.Hide();
-							
-							PrintLog("Rollback Process : Cannot Upload Reverted version.txt file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+						TextFile.WriteFromString(TempVersionFile, Version + 1, false);
+						local Error = Application.GetLastError();
+						if(Error ~= 0)then
+							PrintLog("Stage 3 [IO] : File version.txt creation failed. Cannot continue.", _tblErrorMessages[Error], "ERROR");
 						else
-							PrintLog("Rollback Process : version.txt file was Reverted Successfully", nil, "INFO");
+							FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
+							local FTPError = Application.GetLastError();
+							if(FTPError ~= FTP.OK)then
+								PrintLog("Stage 3 [FTP Error] : Cannot Upload version.txt file. Cannot continue", _tblErrorMessages[FTPError], "ERROR");
+							else
+								if(Verbose &gt; 0)then
+									PrintLog("version.txt File has been Uploaded!", nil, "SUCCESS");
+								end
+								
+								local MySQLFail = (false);
+								
+								local function ReapirSystem()
+									if not(CheckBox.GetChecked("repairsystem"))then
+										StatusDlg.SetMessage("Update Ready!");
+										StatusDlg.SetStatusText("");
+										
+										PrintLog("Update Process Completed!", nil, "SUCCESS");
+										
+										if(CheckBox.GetChecked("deleteafterupload"))then
+											local Split = String.SplitPath(ZipPath);
+											if(File.DoesExist(ZipPath))then
+												StatusDlg.SetMessage("Deleting residual Update File: "..Split.Filename..Split.Extension.."...");
+												
+												File.Delete(ZipPath, false, false, false, FileDeleteCallback);
+											end
+										end
+									else
+										local Continue  = (false);
+										local CheckList = ({});
+										
+										StatusDlg.SetMessage("Stage 5/"..TotalStages);
+										FTPDownloadStatusText = ("Getting checklist.txt file from FTP Server...");
+										StatusDlg.SetStatusText(FTPDownloadStatusText);
+										StatusDlg.ShowProgressMeter(true);
+										StatusDlg.SetMeterPos(0);
+										
+										FTP.ChangeDir("/"..FTPClient);
+										local FTPError = Application.GetLastError();
+										if(FTPError ~= FTP.OK)then
+											PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+										else
+											local ChecklistFileCheck = FTP.GetFileInfo("checklist.txt");
+											if(ChecklistFileCheck == nil)then
+												PrintLog("Stage 5 [FTP WARN] : File checklist.txt not exist. It gonna be Created using actual work directory", WorkingDirectory, "WARNING");
+												
+												local ExceptedFilesList = INIFile.GetValue(_SourceFolder.."\\Settings.ini", "RepairSystem", "ExceptedFilesList");
+												
+												FTPDownloadStatusText = ("Creating Check list file...");
+												StatusDlg.SetStatusText(FTPDownloadStatusText);
+												StatusDlg.ShowProgressMeter(false);
+												
+												local Files = File.Find(WorkingDirectory, "*.*", true, false, nil, nil);
+												
+												StatusDlg.SetTitle("Push Update");
+												StatusDlg.SetMessage("Stage 5/"..TotalStages);
+												StatusDlg.SetMeterRange(0, #Files);
+												
+												if(Files ~= nil)then
+													local FileList	 = ("");
+													local PathLength = (WorkingDirectory.."\\"):len()+1;
+													
+													for Count = 1, #Files do
+														local ActualFile = (Files[Count]);
+														local ContinueB	 = (false);
+														
+														StatusDlg.SetStatusText(Count.."/"..#Files.." Files processed ("..Math.Floor(100*Count/#Files).."%)");
+														StatusDlg.SetMeterPos(Count);
+														
+														if(ExceptedFilesList ~= "")then
+															for _, PathToExcept in pairs(DelimitedToTable(ExceptedFilesList, ",")) do
+																if(PathToExcept == string.sub(ActualFile, PathLength))then
+																	ContinueB = (false);
+																	
+																	break;
+																else
+																	ContinueB = (true);
+																end
+															end
+														else
+															ContinueB = (true);
+														end
+														
+														if(ContinueB == true)then
+															if(FileList == "")then
+																FileList = (File.GetCRC(ActualFile)..","..string.sub(ActualFile, PathLength));
+															else
+																FileList = (FileList.."\r\n"..File.GetCRC(ActualFile)..","..string.sub(ActualFile, PathLength));
+															end
+														end
+													end
+													
+													FTPDownloadStatusText = ("Saving Check list file...");
+													StatusDlg.SetStatusText(FTPDownloadStatusText);
+													
+													local IsConnected = (true);
+													
+													if(FTP.IsConnected())then
+														FTP.NoOp();
+														local FTPError = Application.GetLastError();
+														if(FTPError ~= FTP.OK)then
+															IsConnected = (false);
+														end
+													else
+														IsConnected = (false);
+													end
+
+													if not(IsConnected)then
+														if(ConnectFTP("5"))then
+															FTP.ChangeDir("/"..FTPClient);
+															local FTPError = Application.GetLastError();
+															if(FTPError ~= FTP.OK)then
+																PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																
+																IsConnected = (false);
+															end
+														end
+													end
+													
+													if(IsConnected)then
+														TextFile.WriteFromString(TmpCheckListFile, FileList, false);
+														local Error = Application.GetLastError();
+														if(Error ~= 0)then
+															PrintLog("Stage 5 [IO] : File checklist.txt creation failed. Cannot continue.", _tblErrorMessages[Error], "ERROR");
+														else
+															if(Verbose &gt; 0)then
+																PrintLog("Check list file was created successfully!", nil, "SUCCESS");
+															end
+															
+															for Line in string.gmatch(TextFile.ReadToString(TmpCheckListFile).."\n", "(.-)\r?\n") do
+																table.insert(CheckList, Line);
+															end
+															
+															Continue = (true);
+														end
+													end
+												end
+											else
+												FTP.Download("checklist.txt", TmpCheckListFile, FTPDownloadCallback);
+												local FTPError = Application.GetLastError();
+												if(FTPError ~= FTP.OK)then
+													PrintLog("Stage 5 [FTP Error] : Cannot Download checklist.txt file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+												else
+													if(Verbose &gt; 0)then
+														PrintLog("checklist.txt File downloaded!", nil, "SUCCESS");
+													end
+													
+													for Line in string.gmatch(TextFile.ReadToString(TmpCheckListFile).."\n", "(.-)\r?\n") do
+														table.insert(CheckList, Line);
+													end
+													
+													Continue = (true);
+												end
+											end
+											
+											if(Continue)then
+												for ID = 1, ListBox.GetCount("FileList") do
+													local Exist = (false);
+													local Data = ExplodeString(ListBox.GetItemData("FileList", ID), "|");
+													
+													for j, Line in pairs(CheckList) do
+														local Split = ExplodeString(Line, ",");
+														
+														if(Data[3] ~= nil)then
+															if(String.Replace(Data[3], WorkingDirectory.."\\", "", true) == Split[2])then
+																CheckList[j] = (File.GetCRC(Data[2])..","..String.Replace(Data[2], WorkingDirectory.."\\", "", true));
+																
+																Exist = (true);
+																
+																break;
+															end
+														end
+													end
+													
+													if not(Exist)then
+														table.insert(CheckList, File.GetCRC(Data[2])..","..String.Replace(Data[2], WorkingDirectory.."\\", "", true));
+													end
+												end
+												
+												for i, DeletedPath in pairs(DeletedFiles) do
+													for j, Line in pairs(CheckList) do
+														local Split = ExplodeString(Line, ",");
+														
+														if(String.Replace(DeletedPath, WorkingDirectory.."\\", "", true) == Split[2])then
+															table.remove(CheckList, j);
+														end
+													end
+												end
+												
+												DeletedPath		   = ({});
+												local NewCheckList = ("");
+												
+												for i, NewLine in pairs(CheckList) do
+													if(NewCheckList == "")then
+														NewCheckList = (NewLine);
+													else
+														NewCheckList = (NewCheckList.."\r\n"..NewLine);
+													end
+												end
+												
+												TextFile.WriteFromString(_SourceFolder.."\\checklist.txt", NewCheckList, false);
+												local Error = Application.GetLastError();
+												if(Error ~= 0)then
+													PrintLog("Stage 5 [IO] : File checklist.txt creation failed. Cannot continue.", _tblErrorMessages[Error], "ERROR");
+												else
+													local bSuccess		  = (true);
+													local tblBackUpsFiles = ({});
+													local tblClientFiles = File.Find(TempFolder, "*.*", true, false, nil, nil);
+													
+													StatusDlg.SetTitle("Push Update");
+													StatusDlg.SetMessage("Stage 5/"..TotalStages);
+													
+													for i, Source in pairs(tblClientFiles) do
+														local FilteredPath = String.Replace(Source, TempFolder.."\\", "", true);
+														local SplitPath	   = String.SplitPath(FilteredPath);
+														local FoldersPath  = DelimitedToTable(SplitPath.Folder, "\\");
+														local InDir		   = (true);
+														
+														for i, Folder in pairs(FoldersPath) do
+															FTP.ChangeDir(Folder);
+															local FTPError = Application.GetLastError();
+															if(FTPError ~= FTP.OK)then
+																if(String.Find(FTP.GetLastResponse(), "550 CWD failed", 1, false) ~= -1)then
+																	FTP.MakeDir(Folder);
+																	local FTPError = Application.GetLastError();
+																	if(FTPError ~= FTP.OK)then
+																		PrintLog("Stage 5 [FTP Error] : Cannot Create Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																		
+																		InDir = (false);
+																		
+																		break;
+																	else
+																		FTP.ChangeDir(Folder);
+																		local FTPError = Application.GetLastError();
+																		if(FTPError ~= FTP.OK)then
+																			PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																			
+																			InDir = (false);
+																			
+																			break;
+																		end
+																	end
+																end
+															end
+														end
+														
+														if(InDir)then
+															if(FTP.GetFileInfo(SplitPath.Filename..SplitPath.Extension) ~= nil)then
+																local NewFileName = (SplitPath.Filename..SplitPath.Extension..".bk_"..ZipName);
+																
+																FTP.Rename(SplitPath.Filename..SplitPath.Extension, NewFileName);
+																local FTPError = Application.GetLastError();
+																if(FTPError ~= FTP.OK)then
+																	PrintLog("Stage 5 [FTP Error] : Cannot Rename File for Backup. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																		
+																	bSuccess = (false);
+																	
+																	break;
+																else
+																	table.insert(tblBackUpsFiles, String.Replace(FTP.GetCurrentDir(), "/"..FTPClient.."/", "", false).."/"..NewFileName);
+																end
+															end
+								
+															FTPUploadStatusText = ("Uploading Client Files ("..i.."/"..#tblClientFiles..") to FTP Server...");
+															StatusDlg.SetMeterPos(0);
+															StatusDlg.ShowProgressMeter(true);
+															
+															FTP.Upload(Source, SplitPath.Filename..SplitPath.Extension, FTPUploadCallback);
+															local FTPError = Application.GetLastError();
+															if(FTPError ~= FTP.OK)then
+																PrintLog("Stage 5 [FTP Error] : Cannot Upload ("..SplitPath.Filename..SplitPath.Extension..") File. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																
+																bSuccess = (false);
+																
+																break;
+															else
+																FTP.ChangeDir("/"..FTPClient);
+																local FTPError = Application.GetLastError();
+																if(FTPError ~= FTP.OK)then
+																	PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																	
+																	bSuccess = (false);
+																	
+																	break;
+																else
+																	if(Verbose &gt; 0)then
+																		PrintLog("File: "..SplitPath.Filename..SplitPath.Extension.." has been Uploaded!", nil, "SUCCESS");
+																	end
+																end
+															end
+														end
+													end
+													
+													local function RollBackCleintFiles()
+														FTP.ChangeDir("/"..FTPClient);
+														if(FTPError ~= FTP.OK)then
+															PrintLog("Rollback Process : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+														else
+															for i, FilePath in pairs(tblBackUpsFiles) do
+																local SplitPath	  = String.SplitPath(FilePath);
+																local FoldersPath = DelimitedToTable(SplitPath.Folder, "/");
+																	
+																if(FoldersPath[1] == "")then
+																	FTP.Delete(SplitPath.Filename..SplitPath.Extension);
+																	local FTPError = Application.GetLastError();
+																	if(FTPError ~= FTP.OK)then
+																		PrintLog("Rollback Process : Cannot Delete File ("..SplitPath.Filename..SplitPath.Extension..") for replace it with backup one.", _tblErrorMessages[FTPError], "ERROR");
+																	else
+																		if(Verbose &gt; 0)then
+																			PrintLog("Rollback Process : "..SplitPath.Filename..SplitPath.Extension.." has Deleted successfully!", nil, "SUCCESS");
+																		end
+																		
+																		FTP.Rename(SplitPath.Filename..SplitPath.Extension..".bk_"..ZipName, SplitPath.Filename..SplitPath.Extension);
+																		local FTPError = Application.GetLastError();
+																		if(FTPError ~= FTP.OK)then
+																			PrintLog("Rollback Process : Cannot rename File for backup file", _tblErrorMessages[FTPError], "ERROR");
+																		else
+																			FTP.ChangeDir("/"..FTPClient);
+																			if(FTPError ~= FTP.OK)then
+																				PrintLog("Rollback Process : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																				break;
+																			end
+																		end
+																	end
+																else
+																	if(bSuccess)then
+																		for j, Folder in pairs(FoldersPath) do
+																			FTP.ChangeDir(Folder);
+																			local FTPError = Application.GetLastError();
+																			if(FTPError ~= FTP.OK)then
+																				PrintLog("Rollback Process : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																				
+																				break;
+																			else
+																				if(j == #FoldersPath)then
+																					FTP.Delete(SplitPath.Filename..SplitPath.Extension);
+																					local FTPError = Application.GetLastError();
+																					if(FTPError ~= FTP.OK)then
+																						PrintLog("Rollback Process : Cannot Delete File ("..SplitPath.Filename..SplitPath.Extension..") for replace it with backup one.", _tblErrorMessages[FTPError], "ERROR");
+																					else
+																						if(Verbose &gt; 0)then
+																							PrintLog("Rollback Process : "..SplitPath.Filename..SplitPath.Extension.." has Deleted successfully!", nil, "SUCCESS");
+																						end
+																						
+																						FTP.Rename(SplitPath.Filename..SplitPath.Extension..".bk_"..ZipName, SplitPath.Filename..SplitPath.Extension);
+																						local FTPError = Application.GetLastError();
+																						if(FTPError ~= FTP.OK)then
+																							PrintLog("Rollback Process : Cannot rename File for backup file", _tblErrorMessages[FTPError], "ERROR");
+																						else
+																							FTP.ChangeDir("/"..FTPClient);
+																							if(FTPError ~= FTP.OK)then
+																								PrintLog("Rollback Process : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																								
+																								break;
+																							end
+																						end
+																					end
+																				end
+																			end
+																		end
+																	end
+																end
+															end
+														end
+													end
+													
+													if not(bSuccess)then
+														PrintLog("Stage 5 [FTP Error] : Cannot Upload client files. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+														
+														RollBackCleintFiles();
+													else
+														FTPUploadStatusText = ("Uploading Check list to FTP Server...");
+														StatusDlg.ShowProgressMeter(true);
+														StatusDlg.SetMeterPos(0);
+														
+														FTP.Upload(_SourceFolder.."\\checklist.txt", "checklist.txt", FTPUploadCallback);
+														local FTPError = Application.GetLastError();
+														if(FTPError ~= FTP.OK)then
+															PrintLog("Stage 5 [FTP Error] : Cannot Upload Check list file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+															
+															RollBackCleintFiles();
+														else
+															if(Verbose &gt; 0)then
+																PrintLog("File checklist.txt has been Uploaded!", nil, "SUCCESS");
+															end
+															
+															for i, FilePath in pairs(tblBackUpsFiles) do
+																local SplitPath	  = String.SplitPath(FilePath);
+																local FoldersPath = DelimitedToTable(SplitPath.Folder, "/");
+																
+																if(FoldersPath[1] == "")then
+																	FTP.Delete(SplitPath.Filename..SplitPath.Extension);
+																	local FTPError = Application.GetLastError();
+																	if(FTPError ~= FTP.OK)then
+																		PrintLog("Stage 5 [FTP Error] : Cannot Delete Backup File ("..SplitPath.Filename..SplitPath.Extension..")", _tblErrorMessages[FTPError], "ERROR");
+																	else
+																		if(Verbose &gt; 0)then
+																			PrintLog("Backup File: "..SplitPath.Filename..SplitPath.Extension.." has Deleted successfully!", nil, "SUCCESS");
+																		end
+																		
+																		FTP.ChangeDir("/"..FTPClient);
+																		if(FTPError ~= FTP.OK)then
+																			PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																			
+																			break;
+																		end
+																	end
+																else
+																	if(bSuccess)then
+																		for j, Folder in pairs(FoldersPath) do
+																			FTP.ChangeDir(Folder);
+																			local FTPError = Application.GetLastError();
+																			if(FTPError ~= FTP.OK)then
+																				PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																				
+																				break;
+																			else
+																				if(j == #FoldersPath)then
+																					FTP.Delete(SplitPath.Filename..SplitPath.Extension);
+																					local FTPError = Application.GetLastError();
+																					if(FTPError ~= FTP.OK)then
+																						PrintLog("Stage 5 [FTP Error] : Cannot Delete Backup File ("..SplitPath.Filename..SplitPath.Extension..")", _tblErrorMessages[FTPError], "ERROR");
+																					else
+																						if(Verbose &gt; 0)then
+																							PrintLog("Backup File: "..SplitPath.Filename..SplitPath.Extension.." has Deleted successfully!", nil, "SUCCESS");
+																						end
+																						
+																						FTP.ChangeDir("/"..FTPClient);
+																						if(FTPError ~= FTP.OK)then
+																							PrintLog("Stage 5 [FTP Error] : Cannot Change Dir. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+																							
+																							break;
+																						end
+																					end
+																				end
+																			end
+																		end
+																	end
+																end
+															end
+															
+															StatusDlg.SetMessage("Update Ready!");
+															StatusDlg.SetStatusText("");
+																						
+															PrintLog("Update (Patch File, version.txt, Version in Database, checklist.txt And Client files) Process Completed!", nil, "SUCCESS");
+															
+															if(CheckBox.GetChecked("deleteafterupload"))then
+																local Split = String.SplitPath(ZipPath);
+																if(File.DoesExist(ZipPath))then
+																	StatusDlg.SetMessage("Deleting residual Update File: "..Split.Filename..Split.Extension.."...");
+																	
+																	File.Delete(ZipPath, false, false, false, FileDeleteCallback);
+																end
+															end
+														end
+													end
+												end
+											end
+										end
+									end
+								end
+								
+								StatusDlg.SetMessage("Stage 4/"..TotalStages);
+								StatusDlg.SetStatusText("(Step 1/2) Connecting to DataBase Server...");
+								StatusDlg.ShowProgressMeter(false);
+								
+								MySQLConnection, MySQLError = MySQL:connect(MySQLDatabase, MySQLUsername, MySQLPassword, MySQLHost, 3306);
+								if(MySQLError ~= nil)then
+									StatusDlg.SetMessage("Connection to FTP Server failed.");
+									StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+									
+									PrintLog("Stage 4 [SQL Error] : Failed to connect to DataBase Server. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+									
+									MySQLFail = (true);
+								else
+									if(Verbose &gt; 0)then
+										PrintLog("Connected to MySQL Server", nil, "SUCCESS");
+									end
+									
+									StatusDlg.SetStatusText("(Step 2/2) Update Version in DataBase...");
+									
+									MySQLCursor, MySQLError = MySQLConnection:execute("SELECT a_min, a_max FROM "..MySQLDatabase..".t_clientversion");
+									if(MySQLError ~= nil)then
+										PrintLog("Stage 4 [SQL WARN] : t_clientversion not exist. It gonna be created with Values a_min: "..(Version + 1).." and a_max: 999", nil, "WARNING");
+										
+										MySQLCursor, MySQLError = MySQLConnection:execute("CREATE TABLE t_clientversion (a_min int(11) NOT NULL DEFAULT 0, a_max int(11) NOT NULL DEFAULT 0) ENGINE=MyISAM DEFAULT CHARSET=euckr COLLATE=euckr_korean_ci");
+										if(MySQLError ~= nil)then
+											StatusDlg.SetMessage("Create t_clientversion Table");
+											StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+											
+											PrintLog("Stage 4 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+											
+											MySQLFail = (true);
+										else
+											if(Verbose &gt; 0)then
+												PrintLog("t_clientversion Table has been Created!", nil, "SUCCESS");
+											end
+											
+											MySQLCursor, MySQLError = MySQLConnection:execute("INSERT INTO "..MySQLDatabase..".t_clientversion (a_min, a_max) VALUES ("..(Version + 1)..", 999)");
+											if(MySQLError ~= nil)then
+												StatusDlg.SetMessage("Create t_clientversion Table");
+												StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+												
+												PrintLog("Stage 4 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+												
+												MySQLFail = (true);
+											else
+												if(Verbose &gt; 0)then
+													PrintLog("a_min and a_max columns was Refilled!", nil, "SUCCESS");
+												end
+												
+												MySQLCursor, MySQLError = MySQLConnection:execute("ALTER TABLE "..MySQLDatabase..".t_clientversion ADD PRIMARY KEY (a_max, a_min)");
+												if(MySQLError ~= nil)then
+													StatusDlg.SetMessage("Create t_clientversion Table");
+													StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+													
+													PrintLog("Stage 4 [SQL Error] : Failed to Create t_clientversion Table. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+													
+													MySQLFail = (true);
+												else
+													ReapirSystem();
+												end
+											end
+										end
+									else
+										MySQLCursor, MySQLError = MySQLConnection:execute("UPDATE "..MySQLDatabase..".t_clientversion SET a_min="..(Version + 1));
+										if(MySQLError ~= nil)then
+											StatusDlg.SetMessage("Update Version in DataBase failed.");
+											StatusDlg.SetStatusText(String.Right(MySQLError, String.Length(MySQLError)-8));
+											
+											PrintLog("Stage 4 [SQL Error] : Update Version in DataBase failed. Cannot continue.", String.Right(MySQLError, String.Length(MySQLError)-8), "ERROR");
+										else
+											if(Verbose &gt; 0)then
+												PrintLog("Version in Database has been Updated!", nil, "SUCCESS");
+											end
+											
+											ReapirSystem();
+										end
+									end
+								end
+								
+								if(MySQLFail)then
+									PrintLog("Stage 4 [SQL Error] : Could not complete the SQL step, the version in the version.txt file will be reverted. However the .zip file will remain in /"..FTPUpdates.."/patches.", nil, "INFO");
+									
+									TextFile.WriteFromString(TempVersionFile, Version, false);
+									local Error = Application.GetLastError();
+									if(Error ~= 0)then
+										PrintLog("Rollback Process : [IO] : File version.txt creation failed. Cannot continue.", _tblErrorMessages[Error], "ERROR");
+									else
+										FTPUploadStatusText = ("Uploading Version File to FTP Server...");
+										StatusDlg.SetMeterPos(0);
+										
+										FTP.Upload(TempVersionFile, "version.txt", FTPUploadCallback);
+										local FTPError = Application.GetLastError();
+										if(FTPError ~= FTP.OK)then
+											
+											PrintLog("Rollback Process : Cannot Upload Reverted version.txt file. Cannot continue.", _tblErrorMessages[FTPError], "ERROR");
+										else
+											PrintLog("Rollback Process : version.txt file was Reverted Successfully", nil, "SUCCESS");
+										end
+									end
+								end
+							end
 						end
 					end
 				end
@@ -2051,14 +2526,31 @@ else
 	end
 end
 
-xButton.SetEnabled("Watch", true);</Script>
+if(Folder.DoesExist(TempFolder))then
+	Folder.DeleteTree(TempFolder.."\\", FolderDeleteTreeCallback);
+	local Error = Application.GetLastError();
+	if(Error ~= 0)then
+		PrintLog("Stage 1 [IO] : Cannot Delete Temporary Folder. Cannot continue.", _tblErrorMessages[Error], "ERROR");
+	else
+		PushUpdate();
+	end
+else
+	PushUpdate();
+end
+
+xButton.SetEnabled("Watch", true);
+--xButton.SetEnabled("createzip", true);
+xButton.SetEnabled("Push", true);
+CheckBox.SetEnabled("repairsystem", true);
+
+StatusDlg.Hide();</Script>
 <TreeStates>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>209</DesignCodeLine>
-<DesignCodeCol>117</DesignCodeCol>
+<DesignCodeLine>227</DesignCodeLine>
+<DesignCodeCol>30</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2158,126 +2650,6 @@ xButton.SetEnabled("Watch", true);</Script>
 </FontData>
 </Object>
 <Object>
-<Type>15</Type>
-<Name>genCRC</Name>
-<VisibleAtDesignTime>1</VisibleAtDesignTime>
-<VisibleAtRunTime>1</VisibleAtRunTime>
-<Locked>0</Locked>
-<Enabled>0</Enabled>
-<ToolTip/>
-<Cursor>0</Cursor>
-<Group>0</Group>
-<MaintainAspectRatio>0</MaintainAspectRatio>
-<Pin>0</Pin>
-<TabIndex>-1</TabIndex>
-<AutoResize>5</AutoResize>
-<Coordinates>
-<Top>160</Top>
-<Bottom>191</Bottom>
-<Left>400</Left>
-<Right>481</Right>
-</Coordinates>
-<Ratios>
-<WidthRatio>-1.000000</WidthRatio>
-<HeightRatio>-1.000000</HeightRatio>
-</Ratios>
-<Event>
-<Name>On Click</Name>
-<Args/>
-<Script/>
-<TreeStates>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-</TreeStates>
-<DesignCodeLine>0</DesignCodeLine>
-<DesignCodeCol>0</DesignCodeCol>
-<BookMarks count="0">
-</BookMarks>
-</Event>
-<Event>
-<Name>On Right-Click</Name>
-<Args/>
-<Script/>
-<TreeStates>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-</TreeStates>
-<DesignCodeLine>0</DesignCodeLine>
-<DesignCodeCol>0</DesignCodeCol>
-<BookMarks count="0">
-</BookMarks>
-</Event>
-<Event>
-<Name>On Enter</Name>
-<Args/>
-<Script/>
-<TreeStates>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-</TreeStates>
-<DesignCodeLine>0</DesignCodeLine>
-<DesignCodeCol>0</DesignCodeCol>
-<BookMarks count="0">
-</BookMarks>
-</Event>
-<Event>
-<Name>On Leave</Name>
-<Args/>
-<Script/>
-<TreeStates>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-</TreeStates>
-<DesignCodeLine>0</DesignCodeLine>
-<DesignCodeCol>0</DesignCodeCol>
-<BookMarks count="0">
-</BookMarks>
-</Event>
-<Actions>
-<Action>
-<Type>0</Type>
-<Name>None</Name>
-<Exit>0</Exit>
-<TreeStates>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-<TreeState>0</TreeState>
-</TreeStates>
-</Action>
-</Actions>
-<Options>
-<Text>Generate CheckList</Text>
-<NormalColor format="hex">000000</NormalColor>
-<HighlightColor format="hex">000000</HighlightColor>
-<MouseDownColor format="hex">000000</MouseDownColor>
-<Disabled format="hex">c0c0c0</Disabled>
-<Alignment>0</Alignment>
-<ButtonAlign>0</ButtonAlign>
-<RTLReadingOrder>0</RTLReadingOrder>
-<Checked>0</Checked>
-<MouseOverSoundMode>0</MouseOverSoundMode>
-<MouseOverSound/>
-<MouseClickSoundMode>0</MouseClickSoundMode>
-<MouseClickSound/>
-</Options>
-<Font>
-<FontData>
-<FontName>Segoe UI</FontName>
-<CharacterSet>0</CharacterSet>
-<Height>-12</Height>
-<Weight>400</Weight>
-<Italic>0</Italic>
-<Underline>0</Underline>
-<StrikeOut>0</StrikeOut>
-<AntiAlias>1</AntiAlias>
-</FontData>
-</Font>
-</Object>
-<Object>
 <Type>20</Type>
 <Name>createzip</Name>
 <VisibleAtDesignTime>1</VisibleAtDesignTime>
@@ -2292,10 +2664,10 @@ xButton.SetEnabled("Watch", true);</Script>
 <TabIndex>-1</TabIndex>
 <AutoResize>5</AutoResize>
 <Coordinates>
-<Top>100</Top>
-<Bottom>123</Bottom>
-<Left>390</Left>
-<Right>491</Right>
+<Top>10</Top>
+<Bottom>33</Bottom>
+<Left>-220</Left>
+<Right>-119</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -2325,7 +2697,7 @@ local CreateFolderError = Application.GetLastError();
 if(CreateFolderError ~= 0)then
 	PrintLog("Stage 1 [Error] : ".._tblErrorMessages[CreateFolderError], nil, "ERROR");
 else
-	--FORMAT: YYYY_MM_DD-HH-MM-SS.zip
+	-- FORMAT: YYYY_MM_DD-HH_MM_SS.zip
 	local ZipName = String.Replace(System.GetDate(DATE_FMT_ISO), "-", "_", true).."-"..String.Replace(System.GetTime(TIME_FMT_MIL), ":", "_", true);
 	ZipPath = (_SourceFolder.."\\"..ZipName..".zip");
 	
@@ -2359,6 +2731,7 @@ else
 			end
 		end
 	end]]
+	
 	StatusDlg.SetMessage("Stage 1/"..TotalStages);
 	StatusDlg.SetStatusText("Copying Files and Folders...");
 	
@@ -2374,6 +2747,7 @@ else
 				Folder.Create(BuildingPath.."\\"..FolderName);
 				BuildingPath = (BuildingPath.."\\"..FolderName);
 			end
+			
 		--[[para copiar TODOS los archivos que esten dentro de una carpeta que haya en la lista de eventos del los observadores
 			for _, sPath in pairs(File.Find(Data[2].."\\", "*.*", true, false, nil, FileFindCallback)) do
 				if(StatusDlg.IsCancelled() == true)then
@@ -2383,13 +2757,12 @@ else
 					CopyProcess(sPath);
 				end
 			end]]
+			
 		elseif(Type.Archived == true)then -- File
 			local Split	= String.SplitPath(String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true));
 			
 			if(Folder.DoesExist(Split.Drive..Split.Folder))then
 				File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-				
-				CreateCRC32List(ZipName, Data[2]);
 			else -- if folder of file not exist
 				local BuildingPath = (TempFolder);
 				
@@ -2400,8 +2773,6 @@ else
 				
 				if(Folder.DoesExist(Split.Drive..Split.Folder))then
 					File.Copy(Data[2], String.Replace(Data[2], WorkingDirectory, TempFolder.."\\", true), true, true, false, true, FileCopyCallback);
-					
-					CreateCRC32List(ZipName, Data[2]);
 				end
 			end
 		end
@@ -2429,6 +2800,15 @@ else
 		
 		Folder.DeleteTree(TempFolder.."\\", FolderDeleteTreeCallback);
 		
+		--[[if(GetConfig("General", "CleanAfterUpload") == "true")then
+			local Split = String.SplitPath(ZipPath);
+			if(File.DoesExist(ZipPath))then
+				StatusDlg.SetMessage("Deleting residual Update File: "..Split.Filename..Split.Extension.."...");
+				
+				File.Delete(ZipPath, false, false, false, FileDeleteCallback);
+			end
+		end]]
+		
 		StatusDlg.Hide();
 	end
 end
@@ -2439,8 +2819,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>96</DesignCodeLine>
-<DesignCodeCol>5</DesignCodeCol>
+<DesignCodeLine>21</DesignCodeLine>
+<DesignCodeCol>35</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2548,16 +2928,16 @@ xButton.SetEnabled("Watch", true);</Script>
 <Enabled>1</Enabled>
 <ToolTip/>
 <Cursor>0</Cursor>
-<Group>3</Group>
+<Group>5</Group>
 <MaintainAspectRatio>0</MaintainAspectRatio>
 <Pin>0</Pin>
 <TabIndex>-1</TabIndex>
 <AutoResize>14</AutoResize>
 <Coordinates>
-<Top>320</Top>
-<Bottom>321</Bottom>
+<Top>327</Top>
+<Bottom>328</Bottom>
 <Left>40</Left>
-<Right>491</Right>
+<Right>791</Right>
 </Coordinates>
 <Ratios>
 <WidthRatio>-1.000000</WidthRatio>
@@ -2572,8 +2952,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>1814981733</DesignCodeLine>
-<DesignCodeCol>27502</DesignCodeCol>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2586,8 +2966,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>1852583424</DesignCodeLine>
-<DesignCodeCol>7012459</DesignCodeCol>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2600,8 +2980,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>5857125</DesignCodeLine>
-<DesignCodeCol>1046835321</DesignCodeCol>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2614,8 +2994,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>15145</DesignCodeLine>
-<DesignCodeCol>1093554176</DesignCodeCol>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2638,14 +3018,14 @@ xButton.SetEnabled("Watch", true);</Script>
 <Enabled>1</Enabled>
 <ToolTip/>
 <Cursor>0</Cursor>
-<Group>3</Group>
+<Group>5</Group>
 <MaintainAspectRatio>0</MaintainAspectRatio>
 <Pin>0</Pin>
 <TabIndex>-1</TabIndex>
 <AutoResize>10</AutoResize>
 <Coordinates>
-<Top>308</Top>
-<Bottom>339</Bottom>
+<Top>314</Top>
+<Bottom>345</Bottom>
 <Left>0</Left>
 <Right>41</Right>
 </Coordinates>
@@ -2724,8 +3104,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <Text>
 <Body>Logs</Body>
 <NormalColor>8421504</NormalColor>
-<HighlightColor>0</HighlightColor>
-<MouseDownColor>0</MouseDownColor>
+<HighlightColor>8421504</HighlightColor>
+<MouseDownColor>8421504</MouseDownColor>
 <DisabledColor>12632256</DisabledColor>
 <BorderColor>0</BorderColor>
 <BackColor>16777215</BackColor>
@@ -2752,16 +3132,247 @@ xButton.SetEnabled("Watch", true);</Script>
 <MouseClickSound/>
 </Text>
 </Object>
-<HGuidelines>
-<Guideline>
-<pt>380</pt>
-<locked>0</locked>
-</Guideline>
-<Guideline>
-<pt>490</pt>
-<locked>0</locked>
-</Guideline>
-</HGuidelines>
+<Object>
+<Type>15</Type>
+<Name>repairsystem</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip>Generate CRC List and Upload Client Files</ToolTip>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>130</Top>
+<Bottom>146</Bottom>
+<Left>690</Left>
+<Right>791</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Repair System</Text>
+<NormalColor format="hex">000000</NormalColor>
+<HighlightColor format="hex">000000</HighlightColor>
+<MouseDownColor format="hex">000000</MouseDownColor>
+<Disabled format="hex">c0c0c0</Disabled>
+<Alignment>0</Alignment>
+<ButtonAlign>0</ButtonAlign>
+<RTLReadingOrder>0</RTLReadingOrder>
+<Checked>0</Checked>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<Font>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Font>
+</Object>
+<Object>
+<Type>15</Type>
+<Name>deleteafterupload</Name>
+<VisibleAtDesignTime>1</VisibleAtDesignTime>
+<VisibleAtRunTime>1</VisibleAtRunTime>
+<Locked>0</Locked>
+<Enabled>1</Enabled>
+<ToolTip>Delete Zip file after complete the Push Update process</ToolTip>
+<Cursor>0</Cursor>
+<Group>0</Group>
+<MaintainAspectRatio>0</MaintainAspectRatio>
+<Pin>0</Pin>
+<TabIndex>-1</TabIndex>
+<AutoResize>5</AutoResize>
+<Coordinates>
+<Top>150</Top>
+<Bottom>181</Bottom>
+<Left>690</Left>
+<Right>791</Right>
+</Coordinates>
+<Ratios>
+<WidthRatio>-1.000000</WidthRatio>
+<HeightRatio>-1.000000</HeightRatio>
+</Ratios>
+<Event>
+<Name>On Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Right-Click</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Enter</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Event>
+<Name>On Leave</Name>
+<Args/>
+<Script/>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+<DesignCodeLine>0</DesignCodeLine>
+<DesignCodeCol>0</DesignCodeCol>
+<BookMarks count="0">
+</BookMarks>
+</Event>
+<Actions>
+<Action>
+<Type>0</Type>
+<Name>None</Name>
+<Exit>0</Exit>
+<TreeStates>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+<TreeState>0</TreeState>
+</TreeStates>
+</Action>
+</Actions>
+<Options>
+<Text>Delete Patch file After Finish</Text>
+<NormalColor format="hex">000000</NormalColor>
+<HighlightColor format="hex">000000</HighlightColor>
+<MouseDownColor format="hex">000000</MouseDownColor>
+<Disabled format="hex">c0c0c0</Disabled>
+<Alignment>0</Alignment>
+<ButtonAlign>0</ButtonAlign>
+<RTLReadingOrder>0</RTLReadingOrder>
+<Checked>0</Checked>
+<MouseOverSoundMode>0</MouseOverSoundMode>
+<MouseOverSound/>
+<MouseClickSoundMode>0</MouseClickSoundMode>
+<MouseClickSound/>
+</Options>
+<Font>
+<FontData>
+<FontName>Segoe UI</FontName>
+<CharacterSet>0</CharacterSet>
+<Height>-12</Height>
+<Weight>400</Weight>
+<Italic>0</Italic>
+<Underline>0</Underline>
+<StrikeOut>0</StrikeOut>
+<AntiAlias>1</AntiAlias>
+</FontData>
+</Font>
+</Object>
+<HGuidelines/>
 <VGuidelines>
 <Guideline>
 <pt>10</pt>
