@@ -499,7 +499,7 @@ end</Script>
 	TextFile.WriteFromString(_SourceFolder.."\\build.version", tonumber(TextFile.ReadToString(_SourceFolder.."\\build.version")) + 1, false);
 end</Script>
 <TreeStates>
-<TreeState>2</TreeState>
+<TreeState>0</TreeState>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
@@ -1957,7 +1957,7 @@ else
 					else
 						StatusDlg.SetStatusText("(Step 2/2) Update Version in DataBase...");
 						
-						MySQLCursor, MySQLError = MySQLConnection:execute("SELECT a_min, a_max FROM "..MySQLDatabase..".t_clientversion1");
+						MySQLCursor, MySQLError = MySQLConnection:execute("SELECT a_min, a_max FROM "..MySQLDatabase..".t_clientversion");
 						if(MySQLError ~= nil)then	-- Not exist t_clientserver or a_min or a_max
 							PrintLog("Stage 5 [SQL WARN] : t_clientversion not exist. It gonna be created with Values a_min: "..(Version + 1).." and a_max: 999", nil, "WARNING");
 
@@ -2057,8 +2057,8 @@ xButton.SetEnabled("Watch", true);</Script>
 <TreeState>0</TreeState>
 <TreeState>0</TreeState>
 </TreeStates>
-<DesignCodeLine>171</DesignCodeLine>
-<DesignCodeCol>18</DesignCodeCol>
+<DesignCodeLine>209</DesignCodeLine>
+<DesignCodeCol>117</DesignCodeCol>
 <BookMarks count="0">
 </BookMarks>
 </Event>
@@ -2622,7 +2622,7 @@ xButton.SetEnabled("Watch", true);</Script>
 <Actions/>
 <PLUGIN>
 <DLLFile>ShapeEx\ShapeEx.apo</DLLFile>
-<CustomData>0,8421504,2,8421504,30,30,110,30,20,2,5,0,0</CustomData>
+<CustomData>0,8421504,2,8421504,30,30,110,30,20,2,0,0,0</CustomData>
 </PLUGIN>
 <MouseOverSndMode>0</MouseOverSndMode>
 <MouseOverSound/>
